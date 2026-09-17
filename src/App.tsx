@@ -4,6 +4,7 @@ import {
   ChevronLeft, CircleUserRound, ClipboardCheck, Clock3, Dumbbell, FileText,
   LayoutDashboard, Menu, MessageCircle, Plus, Search, Send, Settings, Sparkles,
   Target, TrendingDown, UserPlus, Users, Weight, X, ListChecks, Play, Trophy, RotateCcw,
+  Share2, Copy, LogOut, ShieldCheck, LockKeyhole, UserCog, Building2,
 } from 'lucide-react'
 import { analyzeStudent, answerStudentQuestion, calculateAdherence, dayDiff, getExerciseTrend } from './analysis'
 import { seedStudents } from './data'
@@ -11,6 +12,7 @@ import type { CheckIn, ExercisePrescription, Student, StudentAnalysis, TimelineI
 
 type Page = 'dashboard' | 'students' | 'checkins' | 'settings' | 'profile'
 type ClientPage = 'home' | 'plan' | 'workout' | 'progress' | 'checkin'
+type UserRole = 'coach' | 'admin'
 const STORAGE_KEY = 'hamrah-coach-students-v1'
 const dayNames = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه']
 
@@ -27,7 +29,7 @@ function Avatar({ student, size = 'md' }: { student: Student; size?: 'sm' | 'md'
 }
 
 function StatusPill({ analysis }: { analysis: StudentAnalysis }) {
-  const labels = { attention: 'نیازمند توجه', watch: 'زیر نظر', stable: 'پایدار' }
+  const labels = { attention: 'بهتره امروز پیگیری بشه', watch: 'زیر نظر', stable: 'روبه‌راه' }
   return <span className={`status-pill ${analysis.status}`}><i />{labels[analysis.status]}</span>
 }
 
@@ -35,25 +37,24 @@ function EmptyState({ icon, title, text }: { icon: ReactNode; title: string; tex
   return <div className="empty-state"><div className="empty-icon">{icon}</div><h3>{title}</h3><p>{text}</p></div>
 }
 
-function Sidebar({ page, onNavigate, open, close, onClientPreview }: { page: Page; onNavigate: (page: Page) => void; open: boolean; close: () => void; onClientPreview: () => void }) {
+function Sidebar({ page, onNavigate, open, close, logout }: { page: Page; onNavigate: (page: Page) => void; open: boolean; close: () => void; logout: () => void }) {
   const nav = [
     { id: 'dashboard' as Page, label: 'امروز', icon: <LayoutDashboard size={19} /> },
     { id: 'students' as Page, label: 'شاگردها', icon: <Users size={19} /> },
-    { id: 'checkins' as Page, label: 'چک‌این‌ها', icon: <ClipboardCheck size={19} /> },
+    { id: 'checkins' as Page, label: 'گزارش‌های هفتگی', icon: <ClipboardCheck size={19} /> },
   ]
   return <>
     {open && <button className="sidebar-backdrop" onClick={close} aria-label="بستن منو" />}
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <button className="mobile-close" onClick={close}><X /></button>
-      <div className="brand"><div className="brand-mark"><Activity /></div><div><strong>همراه</strong><small>دستیار هوشمند مربی</small></div></div>
+      <div className="brand"><div className="brand-mark"><Activity /></div><div><strong>شاگردیتو</strong><small>فضای حرفه‌ای مربی‌ها</small></div></div>
       <nav>
         <p className="nav-label">فضای کار</p>
         {nav.map(item => <button key={item.id} className={page === item.id || (page === 'profile' && item.id === 'students') ? 'active' : ''} onClick={() => { onNavigate(item.id); close() }}>{item.icon}<span>{item.label}</span>{item.id === 'dashboard' && <b>۳</b>}</button>)}
       </nav>
       <div className="sidebar-bottom">
-        <button className="client-preview-button" onClick={onClientPreview}><CircleUserRound size={19} /><span>نمایش پنل شاگرد</span><ChevronLeft size={16} /></button>
         <button className={page === 'settings' ? 'active' : ''} onClick={() => onNavigate('settings')}><Settings size={19} /><span>تنظیمات</span></button>
-        <div className="coach-card"><div className="coach-avatar">م‌ح</div><div><strong>مهدی حسینی</strong><small>مربی شخصی</small></div><ChevronLeft size={17} /></div>
+        <div className="coach-card"><div className="coach-avatar">م‌ح</div><div><strong>مهدی حسینی</strong><small>مربی شخصی</small></div><button className="logout-mini" onClick={logout} title="خروج"><LogOut size={17}/></button></div>
       </div>
     </aside>
   </>
@@ -72,11 +73,11 @@ function Dashboard({ students, openStudent, addStudent, navigate }: { students: 
   const watch = ranked.filter(item => item.analysis.status === 'watch')
   const stable = ranked.filter(item => item.analysis.status === 'stable')
   return <>
-    <Header title="امروز چه کسانی به توجه نیاز دارند؟" eyebrow="صبح بخیر، مهدی 👋" onMenu={() => document.body.classList.add('menu-request')} />
+    <Header title="امروز بهتره سراغ چه کسی بری؟" eyebrow="سلام مهدی، روزت پُرانرژی 👋" onMenu={() => document.body.classList.add('menu-request')} />
     <main className="page dashboard-page">
       <section className="hero-strip">
         <div className="hero-orb"><Sparkles /></div>
-        <div><h2>{attention.length ? `${faNumber(attention.length)} شاگرد بهتر است امروز پیگیری شوند` : 'همه‌چیز تحت کنترل است'}</h2><p>بر اساس آخرین چک‌این، حضور، روند تمرین و زمان آخرین ارتباط.</p></div>
+        <div><h2>{attention.length ? `${faNumber(attention.length)} شاگرد منتظر پیگیری تو هستند` : 'امروز همه‌چیز رو‌به‌راهه'}</h2><p>بر پایه‌ی آخرین گزارش هفتگی، روند تمرین و زمان آخرین ارتباط.</p></div>
         <div className="hero-stats"><span><b>{faNumber(attention.length)}</b>فوری</span><span><b>{faNumber(watch.length)}</b>زیر نظر</span><span><b>{faNumber(stable.length)}</b>پایدار</span></div>
       </section>
 
@@ -95,13 +96,13 @@ function Dashboard({ students, openStudent, addStudent, navigate }: { students: 
 
       <section className="lower-grid">
         <div className="panel">
-          <div className="panel-heading"><div><h3>در انتظار چک‌این</h3><p>شاگردانی که فرم این هفته را نفرستاده‌اند</p></div><button className="text-button" onClick={() => navigate('checkins')}>مشاهده همه</button></div>
-          <div className="compact-list">{ranked.filter(x => !x.student.checkIns[0] || dayDiff(x.student.checkIns[0].date) > 7).slice(0, 4).map(({ student }) => <button key={student.id} onClick={() => openStudent(student.id)}><Avatar student={student} size="sm" /><span><strong>{student.name}</strong><small>آخرین چک‌این: {relativeDate(student.checkIns[0]?.date || student.joinedAt)}</small></span><ChevronLeft size={18} /></button>)}</div>
+          <div className="panel-heading"><div><h3>در انتظار گزارش هفتگی</h3><p>شاگردانی که گزارش این هفته را نفرستاده‌اند</p></div><button className="text-button" onClick={() => navigate('checkins')}>مشاهده همه</button></div>
+          <div className="compact-list">{ranked.filter(x => !x.student.checkIns[0] || dayDiff(x.student.checkIns[0].date) > 7).slice(0, 4).map(({ student }) => <button key={student.id} onClick={() => openStudent(student.id)}><Avatar student={student} size="sm" /><span><strong>{student.name}</strong><small>آخرین گزارش: {relativeDate(student.checkIns[0]?.date || student.joinedAt)}</small></span><ChevronLeft size={18} /></button>)}</div>
         </div>
         <div className="panel weekly-panel">
           <div className="panel-heading"><div><h3>نبض این هفته</h3><p>خلاصه وضعیت همه شاگردها</p></div><BarChart3 size={21} /></div>
           <div className="pulse-row"><div className="pulse-value positive">+۱۲٪</div><div><strong>انجام تمرین</strong><span>نسبت به هفته قبل</span></div><div className="mini-bars"><i style={{ height: '35%' }} /><i style={{ height: '48%' }} /><i style={{ height: '42%' }} /><i style={{ height: '67%' }} /><i style={{ height: '76%' }} /><i style={{ height: '82%' }} /></div></div>
-          <div className="metrics-row"><div><span>میانگین انرژی</span><b>۳٫۶ <small>/ ۵</small></b></div><div><span>نرخ پاسخ چک‌این</span><b>۷۸٪</b></div><div><span>جلسات انجام‌شده</span><b>۴۷</b></div></div>
+          <div className="metrics-row"><div><span>میانگین انرژی</span><b>۳٫۶ <small>/ ۵</small></b></div><div><span>نرخ پاسخ گزارش هفتگی</span><b>۷۸٪</b></div><div><span>جلسات انجام‌شده</span><b>۴۷</b></div></div>
         </div>
       </section>
 
@@ -116,9 +117,9 @@ function StudentsPage({ students, openStudent, addStudent }: { students: Student
   const rows = students.map(student => ({ student, analysis: analyzeStudent(student) })).filter(({ student, analysis }) => (filter === 'all' || analysis.status === filter) && student.name.includes(query))
   return <><Header title="شاگردها" eyebrow={`${faNumber(students.length)} شاگرد فعال`} onMenu={() => document.body.classList.add('menu-request')} /><main className="page">
     <div className="toolbar"><div className="search-box"><Search size={19} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجوی نام شاگرد..." /></div><button className="button primary" onClick={addStudent}><Plus size={18} /> شاگرد جدید</button></div>
-    <div className="filter-tabs">{([['all', 'همه'], ['attention', 'نیازمند توجه'], ['watch', 'زیر نظر'], ['stable', 'پایدار']] as const).map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}</div>
+    <div className="filter-tabs">{([['all', 'همه'], ['attention', 'پیگیری امروز'], ['watch', 'زیر نظر'], ['stable', 'روبه‌راه']] as const).map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}</div>
     <section className="students-table panel">
-      <div className="table-head"><span>شاگرد</span><span>هدف</span><span>آخرین چک‌این</span><span>انجام جلسات</span><span>وضعیت</span><span /></div>
+      <div className="table-head"><span>شاگرد</span><span>هدف</span><span>آخرین گزارش</span><span>انجام جلسات</span><span>وضعیت</span><span /></div>
       {rows.map(({ student, analysis }) => <button className="student-row" key={student.id} onClick={() => openStudent(student.id)}><span className="student-cell"><Avatar student={student} size="sm" /><span><strong>{student.name}</strong><small>{student.plan}</small></span></span><span>{student.goal}</span><span>{student.checkIns[0] ? relativeDate(student.checkIns[0].date) : '—'}</span><span><i className="progress"><i style={{ width: `${student.sessionsAttended / student.sessionsPlanned * 100}%` }} /></i>{faNumber(student.sessionsAttended)} از {faNumber(student.sessionsPlanned)}</span><span><StatusPill analysis={analysis} /></span><span><ChevronLeft /></span></button>)}
       {!rows.length && <EmptyState icon={<Search />} title="نتیجه‌ای پیدا نشد" text="عبارت جست‌وجو یا فیلتر را تغییر دهید." />}
     </section>
@@ -164,7 +165,7 @@ function ProgressPanel({ student }: { student: Student }) {
 }
 
 function CheckInHistory({ student }: { student: Student }) {
-  return <section className="checkin-history panel"><div className="panel-heading"><div><h3>تاریخچه چک‌این‌ها</h3><p>تغییرات حال عمومی شاگرد در طول زمان</p></div><ClipboardCheck size={20}/></div>{student.checkIns.map(item => <div className="checkin-history-row" key={item.id}><time>{faDate(item.date)}</time><span><small>انرژی</small><b>{faNumber(item.energy)}/۵</b></span><span><small>خواب</small><b>{faNumber(item.sleep)}/۵</b></span><span><small>کیفیت تمرین</small><b>{faNumber(item.workoutCompletion)}٪</b></span><span className="checkin-note">{item.pain || item.note || 'بدون توضیح'}</span></div>)}</section>
+  return <section className="checkin-history panel"><div className="panel-heading"><div><h3>تاریخچه گزارش‌های هفتگی</h3><p>تغییرات حال عمومی شاگرد در طول زمان</p></div><ClipboardCheck size={20}/></div>{student.checkIns.map(item => <div className="checkin-history-row" key={item.id}><time>{faDate(item.date)}</time><span><small>انرژی</small><b>{faNumber(item.energy)}/۵</b></span><span><small>خواب</small><b>{faNumber(item.sleep)}/۵</b></span><span><small>کیفیت تمرین</small><b>{faNumber(item.workoutCompletion)}٪</b></span><span className="checkin-note">{item.pain || item.note || 'بدون توضیح'}</span></div>)}</section>
 }
 
 function ProfilePage({ student, updateStudent, goBack }: { student: Student; updateStudent: (student: Student) => void; goBack: () => void }) {
@@ -175,6 +176,17 @@ function ProfilePage({ student, updateStudent, goBack }: { student: Student; upd
   const [messages, setMessages] = useState<{ q: string; a: string }[]>([])
   const [note, setNote] = useState('')
   const [showNote, setShowNote] = useState(false)
+  const [shared, setShared] = useState(false)
+
+  const shareProgram = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?program=${student.id}`
+    try {
+      if (navigator.share) await navigator.share({ title: `برنامه تمرینی ${student.name}`, text: `برنامه‌ات در شاگردیتو آماده است`, url })
+      else await navigator.clipboard.writeText(url)
+      setShared(true)
+      window.setTimeout(() => setShared(false), 2600)
+    } catch { /* کاربر پنجره اشتراک‌گذاری را بسته است */ }
+  }
 
   const ask = (value?: string) => {
     const q = value || question
@@ -190,21 +202,21 @@ function ProfilePage({ student, updateStudent, goBack }: { student: Student; upd
     const now = new Date().toISOString()
     updateStudent({ ...student, lastContact: now, timeline: [{ id: crypto.randomUUID(), date: now, type: 'message', title: 'پیگیری انجام شد', body: 'تماس با شاگرد توسط مربی ثبت شد.' }, ...student.timeline] })
   }
-  return <><header className="profile-header"><button className="back-button" onClick={goBack}><ArrowLeft size={18} /> بازگشت</button><div className="profile-actions"><button className="button secondary" onClick={() => setShowNote(true)}><FileText size={17} /> یادداشت جدید</button><button className="button primary" onClick={markContact}><Check size={17} /> ثبت پیگیری</button></div></header><main className="page profile-page">
+  return <><header className="profile-header"><button className="back-button" onClick={goBack}><ArrowLeft size={18} /> بازگشت</button><div className="profile-actions"><button className={`button share-program ${shared ? 'done' : ''}`} onClick={shareProgram}>{shared ? <Check size={17}/> : <Share2 size={17}/>} {shared ? 'لینک آماده شد' : 'اشتراک برنامه'}</button><button className="button secondary" onClick={() => setShowNote(true)}><FileText size={17} /> یادداشت جدید</button><button className="button primary" onClick={markContact}><Check size={17} /> ثبت پیگیری</button></div></header><main className="page profile-page">
     <section className="profile-identity"><Avatar student={student} size="lg" /><div><div className="name-line"><h1>{student.name}</h1><StatusPill analysis={analysis} /></div><p>{student.goal} · {student.plan}</p><div className="identity-meta"><span><CircleUserRound /> عضو از {faDate(student.joinedAt)}</span><span><MessageCircle /> آخرین ارتباط {relativeDate(student.lastContact)}</span></div></div><div className={`attention-score ${analysis.status}`}><strong>{faNumber(analysis.score)}</strong><span>امتیاز توجه</span></div></section>
-    <div className="profile-tabs"><button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>نمای کلی</button><button className={tab === 'program' ? 'active' : ''} onClick={() => setTab('program')}>برنامه فعلی</button><button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>پیشرفت</button><button className={tab === 'checkins' ? 'active' : ''} onClick={() => setTab('checkins')}>چک‌این‌ها</button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>یادداشت و Timeline</button><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><Sparkles size={15} /> پرسش از همراه</button></div>
+    <div className="profile-tabs"><button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>نمای کلی</button><button className={tab === 'program' ? 'active' : ''} onClick={() => setTab('program')}>برنامه تمرینی</button><button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>پیشرفت</button><button className={tab === 'checkins' ? 'active' : ''} onClick={() => setTab('checkins')}>گزارش‌های هفتگی</button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>یادداشت‌ها</button><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><Sparkles size={15} /> دستیار مربی</button></div>
 
     {tab === 'overview' && <div className="profile-grid"><div className="profile-main">
-      <section className={`insight-panel ${analysis.status}`}><div className="insight-heading"><div className="insight-icon"><Sparkles /></div><div><small>جمع‌بندی همراه</small><h2>{analysis.summary}</h2></div></div><div className="insight-signals">{analysis.signals.length ? analysis.signals.map(signal => <div key={signal.id}><i className={signal.tone}>{signal.tone === 'danger' ? <AlertCircle /> : <Activity />}</i><span><strong>{signal.label}</strong><small>{signal.detail}</small></span></div>) : <p>در اطلاعات اخیر نشانه نگران‌کننده‌ای دیده نشد.</p>}</div><div className="suggested-action"><Target size={19} /><div><small>بهترین اقدام بعدی</small><p>{analysis.action}</p></div><button onClick={markContact}>انجام شد</button></div></section>
-      <section className="panel"><div className="panel-heading"><div><h3>آخرین وضعیت</h3><p>{latest ? `ثبت‌شده در ${faDate(latest.date)}` : 'هنوز چک‌این ثبت نشده'}</p></div></div>{latest && <div className="metric-cards"><div><Activity /><span>انرژی</span><b>{faNumber(latest.energy)} <small>/ ۵</small></b></div><div><Clock3 /><span>خواب</span><b>{faNumber(latest.sleep)} <small>/ ۵</small></b></div><div><Dumbbell /><span>انجام تمرین</span><b>{faNumber(latest.workoutCompletion)}٪</b></div><div><Weight /><span>وزن</span><b>{latest.weight.toLocaleString('fa-IR')} <small>ک‌گ</small></b></div></div>}</section>
+      <section className={`insight-panel ${analysis.status}`}><div className="insight-heading"><div className="insight-icon"><Sparkles /></div><div><small>جمع‌بندی شاگردیتو</small><h2>{analysis.summary}</h2></div></div><div className="insight-signals">{analysis.signals.length ? analysis.signals.map(signal => <div key={signal.id}><i className={signal.tone}>{signal.tone === 'danger' ? <AlertCircle /> : <Activity />}</i><span><strong>{signal.label}</strong><small>{signal.detail}</small></span></div>) : <p>در اطلاعات اخیر نشانه نگران‌کننده‌ای دیده نشد.</p>}</div><div className="suggested-action"><Target size={19} /><div><small>بهترین اقدام بعدی</small><p>{analysis.action}</p></div><button onClick={markContact}>انجام شد</button></div></section>
+      <section className="panel"><div className="panel-heading"><div><h3>آخرین وضعیت</h3><p>{latest ? `ثبت‌شده در ${faDate(latest.date)}` : 'هنوز گزارش هفتگی ثبت نشده'}</p></div></div>{latest && <div className="metric-cards"><div><Activity /><span>انرژی</span><b>{faNumber(latest.energy)} <small>/ ۵</small></b></div><div><Clock3 /><span>خواب</span><b>{faNumber(latest.sleep)} <small>/ ۵</small></b></div><div><Dumbbell /><span>انجام تمرین</span><b>{faNumber(latest.workoutCompletion)}٪</b></div><div><Weight /><span>وزن</span><b>{latest.weight.toLocaleString('fa-IR')} <small>ک‌گ</small></b></div></div>}</section>
       <section className="panel"><TrendChart student={student} /></section>
-    </div><aside className="profile-side"><section className="panel quick-ask"><div className="bot-badge"><Bot /></div><h3>از همراه بپرسید</h3><p>درباره روند، یادداشت‌ها یا وضعیت این شاگرد سؤال کنید.</p><div className="ask-field"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="مثلاً: آخرین بار کی درد داشت؟" /><button onClick={() => ask()}><Send /></button></div><div className="suggestions"><button onClick={() => ask('چرا نیاز به توجه دارد؟')}>چرا نیاز به توجه دارد؟</button><button onClick={() => ask('روند وزنش چطور بوده؟')}>روند وزن چطور بوده؟</button><button onClick={() => ask('آیا سابقه درد دارد؟')}>سابقه درد دارد؟</button></div></section><section className="panel contact-card"><h3>اطلاعات شاگرد</h3><dl><div><dt>شماره تماس</dt><dd>{student.phone}</dd></div><div><dt>هدف</dt><dd>{student.goal}</dd></div><div><dt>نوع همکاری</dt><dd>{student.plan}</dd></div></dl></section></aside></div>}
+    </div><aside className="profile-side"><section className="panel quick-ask"><div className="bot-badge"><Bot /></div><h3>از دستیار مربی بپرس</h3><p>درباره روند، یادداشت‌ها یا وضعیت این شاگرد سؤال کن.</p><div className="ask-field"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="مثلاً: آخرین بار کی درد داشت؟" /><button onClick={() => ask()}><Send /></button></div><div className="suggestions"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('روند وزنش چطور بوده؟')}>روند وزن چطور بوده؟</button><button onClick={() => ask('آیا سابقه درد دارد؟')}>سابقه درد دارد؟</button></div></section><section className="panel contact-card"><h3>اطلاعات شاگرد</h3><dl><div><dt>شماره تماس</dt><dd>{student.phone}</dd></div><div><dt>هدف</dt><dd>{student.goal}</dd></div><div><dt>نوع همکاری</dt><dd>{student.plan}</dd></div></dl></section></aside></div>}
 
     {tab === 'timeline' && <section className="timeline-layout"><div className="timeline panel">{student.timeline.map(item => <div className={`timeline-item ${item.important ? 'important' : ''}`} key={item.id}><div className="timeline-dot">{item.type === 'checkin' ? <ClipboardCheck /> : item.type === 'message' ? <MessageCircle /> : item.type === 'workout' ? <Dumbbell /> : <FileText />}</div><div><time>{faDate(item.date)} · {relativeDate(item.date)}</time><h3>{item.title}</h3><p>{item.body}</p></div></div>)}</div></section>}
     {tab === 'program' && <ProgramPanel student={student} updateStudent={updateStudent} />}
     {tab === 'progress' && <ProgressPanel student={student} />}
     {tab === 'checkins' && <CheckInHistory student={student} />}
-    {tab === 'assistant' && <section className="assistant-view panel"><div className="assistant-intro"><div className="bot-badge"><Sparkles /></div><div><h2>درباره {student.name} بپرسید</h2><p>پاسخ‌ها بر اساس چک‌این‌ها، اندازه‌گیری‌ها و یادداشت‌های ثبت‌شده‌اند.</p></div></div><div className="chat-area">{messages.length === 0 && <div className="chat-prompts"><button onClick={() => ask('چرا نیاز به توجه دارد؟')}>چرا نیاز به توجه دارد؟</button><button onClick={() => ask('آخرین وضعیت خواب و انرژی چطور بوده؟')}>وضعیت خواب و انرژی؟</button><button onClick={() => ask('آخرین بار کی با او تماس داشتم؟')}>آخرین ارتباط چه زمانی بود؟</button></div>}{messages.map((message, index) => <div className="chat-pair" key={index}><p className="coach-message">{message.q}</p><div className="bot-message"><Sparkles size={17} /><p>{message.a}</p></div></div>)}</div><div className="chat-input"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="سؤال خود را بنویسید..." /><button onClick={() => ask()}><Send /></button></div><small className="ai-note">همراه ممکن است اشتباه کند؛ تصمیم نهایی با مربی است.</small></section>}
+    {tab === 'assistant' && <section className="assistant-view panel"><div className="assistant-intro"><div className="bot-badge"><Sparkles /></div><div><h2>درباره {student.name} بپرسید</h2><p>پاسخ‌ها بر اساس گزارش‌های هفتگی، اندازه‌گیری‌ها و یادداشت‌های ثبت‌شده‌اند.</p></div></div><div className="chat-area">{messages.length === 0 && <div className="chat-prompts"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('آخرین وضعیت خواب و انرژی چطور بوده؟')}>وضعیت خواب و انرژی؟</button><button onClick={() => ask('آخرین بار کی با او تماس داشتم؟')}>آخرین ارتباط چه زمانی بود؟</button></div>}{messages.map((message, index) => <div className="chat-pair" key={index}><p className="coach-message">{message.q}</p><div className="bot-message"><Sparkles size={17} /><p>{message.a}</p></div></div>)}</div><div className="chat-input"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="سؤال خود را بنویسید..." /><button onClick={() => ask()}><Send /></button></div><small className="ai-note">این جمع‌بندی ممکن است خطا داشته باشد؛ تصمیم نهایی با مربی است.</small></section>}
   </main>{showNote && <div className="modal-layer"><div className="modal small"><button className="modal-close" onClick={() => setShowNote(false)}><X /></button><h2>یادداشت جدید</h2><p>این یادداشت در حافظه و خط زمانی شاگرد باقی می‌ماند.</p><textarea autoFocus value={note} onChange={e => setNote(e.target.value)} placeholder="مثلاً: امروز هنگام اسکوات از درد زانوی راست گفت..." rows={5} /><button className="button primary full" onClick={saveNote}>ذخیره یادداشت</button></div></div>}</>
 }
 
@@ -215,15 +227,18 @@ function CheckInsPage({ students, updateStudent }: { students: Student[]; update
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget)
     const checkIn: CheckIn = { id: crypto.randomUUID(), date: new Date().toISOString(), energy: Number(data.get('energy')), sleep: Number(data.get('sleep')), nutrition: Number(data.get('nutrition')), workoutCompletion: Number(data.get('completion')), weight: Number(data.get('weight')), mood: Number(data.get('mood')), pain: String(data.get('pain') || ''), note: String(data.get('note') || '') }
-    updateStudent({ ...student, checkIns: [checkIn, ...student.checkIns], timeline: [{ id: crypto.randomUUID(), date: checkIn.date, type: 'checkin', title: 'چک‌این هفتگی ثبت شد', body: `انرژی ${checkIn.energy} از ۵ · انجام تمرین ${checkIn.workoutCompletion}٪`, important: Boolean(checkIn.pain) }, ...student.timeline] }); setSaved(true)
+    updateStudent({ ...student, checkIns: [checkIn, ...student.checkIns], timeline: [{ id: crypto.randomUUID(), date: checkIn.date, type: 'checkin', title: 'گزارش هفتگی ثبت شد', body: `انرژی ${checkIn.energy} از ۵ · انجام تمرین ${checkIn.workoutCompletion}٪`, important: Boolean(checkIn.pain) }, ...student.timeline] }); setSaved(true)
   }
-  return <><Header title="چک‌این هفتگی" eyebrow="فرم آزمایشی شاگرد" onMenu={() => document.body.classList.add('menu-request')} /><main className="page"><div className="checkin-layout"><section className="panel checkin-info"><div className="form-brand"><Activity /> همراه</div><h2>این هفته چطور گذشت؟</h2><p>پاسخ‌های کوتاه شما به مربی کمک می‌کند برنامه مناسب‌تری تنظیم کند.</p><label>نمایش فرم برای شاگرد</label><select value={selectedId} onChange={e => { setSelectedId(e.target.value); setSaved(false) }}>{students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select><div className="privacy-note"><Check /><span><strong>اطلاعات شما محرمانه است</strong><small>پاسخ‌ها فقط برای مربی شما نمایش داده می‌شود.</small></span></div></section>
-    <form className="panel checkin-form" onSubmit={submit}>{saved ? <div className="success-state"><div><Check /></div><h2>چک‌این با موفقیت ثبت شد</h2><p>پاسخ‌ها به پروفایل {student.name} اضافه و تحلیل او به‌روز شد.</p><button type="button" className="button secondary" onClick={() => setSaved(false)}>ثبت پاسخ دیگر</button></div> : <><h3>حال عمومی</h3><RangeField name="energy" label="سطح انرژی" low="خیلی کم" high="عالی" /><RangeField name="sleep" label="کیفیت خواب" low="ضعیف" high="عالی" /><RangeField name="mood" label="حال و روحیه" low="بد" high="عالی" /><RangeField name="nutrition" label="رعایت تغذیه" low="کم" high="کامل" /><hr/><h3>تمرین و بدن</h3><label className="field-label">چند درصد تمرین‌ها را انجام دادید؟<input name="completion" type="number" min="0" max="100" defaultValue="80" required/><span>درصد</span></label><label className="field-label">وزن فعلی<input name="weight" type="number" step="0.1" min="30" max="250" defaultValue={student.checkIns[0]?.weight || 70} required/><span>کیلوگرم</span></label><label className="textarea-label">این هفته درد یا ناراحتی جدیدی داشتید؟<textarea name="pain" rows={2} placeholder="اگر موردی نیست، خالی بگذارید." /></label><label className="textarea-label">توضیح دیگری برای مربی دارید؟<textarea name="note" rows={3} placeholder="هر چیزی که فکر می‌کنید مربی باید بداند..." /></label><button className="button primary full" type="submit">ثبت چک‌این <ArrowLeft size={18}/></button></>}</form></div></main></>
+  return <><Header title="گزارش‌های هفتگی" eyebrow="ثبت و مرور حال شاگردها" onMenu={() => document.body.classList.add('menu-request')} /><main className="page"><div className="checkin-layout"><section className="panel checkin-info"><div className="form-brand"><Activity /> شاگردیتو</div><h2>حال این هفته چطور بوده؟</h2><p>این فرم کوتاه کمک می‌کند تصمیم‌های تمرینی دقیق‌تری بگیرید.</p><label>انتخاب شاگرد</label><select value={selectedId} onChange={e => { setSelectedId(e.target.value); setSaved(false) }}>{students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select><div className="privacy-note"><Check /><span><strong>اطلاعات امن و خصوصی</strong><small>پاسخ‌ها فقط در فضای کاری مربی دیده می‌شوند.</small></span></div></section>
+    <form className="panel checkin-form" onSubmit={submit}>{saved ? <div className="success-state"><div><Check /></div><h2>گزارش با موفقیت ثبت شد</h2><p>پاسخ‌ها به پروفایل {student.name} اضافه و وضعیت او به‌روز شد.</p><button type="button" className="button secondary" onClick={() => setSaved(false)}>ثبت گزارش دیگر</button></div> : <><h3>حال عمومی</h3><RangeField name="energy" label="سطح انرژی" low="خیلی کم" high="عالی" /><RangeField name="sleep" label="کیفیت خواب" low="ضعیف" high="عالی" /><RangeField name="mood" label="حال و روحیه" low="بد" high="عالی" /><RangeField name="nutrition" label="رعایت تغذیه" low="کم" high="کامل" /><hr/><h3>تمرین و بدن</h3><label className="field-label">چند درصد تمرین‌ها انجام شده؟<input name="completion" type="number" min="0" max="100" defaultValue="80" required/><span>درصد</span></label><label className="field-label">وزن فعلی<input name="weight" type="number" step="0.1" min="30" max="250" defaultValue={student.checkIns[0]?.weight || 70} required/><span>کیلوگرم</span></label><label className="textarea-label">این هفته درد یا ناراحتی جدیدی وجود داشته؟<textarea name="pain" rows={2} placeholder="اگر موردی نیست، خالی بگذارید." /></label><label className="textarea-label">توضیح دیگری برای مربی<textarea name="note" rows={3} placeholder="هر نکته‌ای که برای تنظیم برنامه مهم است..." /></label><button className="button primary full" type="submit">ثبت گزارش هفتگی <ArrowLeft size={18}/></button></>}</form></div></main></>
 }
 
 function RangeField({ name, label, low, high }: { name: string; label: string; low: string; high: string }) {
   const [value, setValue] = useState(3)
-  return <label className="range-field"><span><b>{label}</b><strong>{faNumber(value)} از ۵</strong></span><input name={name} type="range" min="1" max="5" value={value} onChange={e => setValue(Number(e.target.value))}/><small><i>{low}</i><i>{high}</i></small></label>
+  const energyIcons = ['🪫', '😮‍💨', '🙂', '⚡', '🔥']
+  const sleepIcons = ['🌑', '🌘', '🌗', '🌖', '🌕']
+  const icons = name === 'sleep' ? sleepIcons : energyIcons
+  return <div className={`range-field choice-field value-${value}`}><span><b>{label}</b><strong>{faNumber(value)} از ۵</strong></span><input name={name} type="hidden" value={value}/><div className="scale-options" role="radiogroup" aria-label={label}>{icons.map((icon, index) => <button type="button" role="radio" aria-checked={value === index + 1} className={value === index + 1 ? 'selected' : ''} key={icon} onClick={() => setValue(index + 1)}><i>{icon}</i><small>{faNumber(index + 1)}</small></button>)}</div><small className="range-caption"><i>{low}</i><i>{high}</i></small></div>
 }
 
 function ClientWorkout({ student, day, updateStudent, done }: { student: Student; day: WorkoutDay; updateStudent: (student: Student) => void; done: () => void }) {
@@ -271,14 +286,51 @@ function ClientApp({ students, selectedId, selectStudent, updateStudent, exit }:
 }
 
 function SettingsPage() {
-  return <><Header title="تنظیمات" eyebrow="حساب و فضای کار" onMenu={() => document.body.classList.add('menu-request')} /><main className="page settings-page"><section className="panel settings-card"><h2>تنظیم تحلیل و هشدار</h2><p>آستانه‌های نسخه آزمایشی برای پایلوت مربی تنظیم شده‌اند.</p><div className="setting-row"><div><strong>هشدار پایبندی پایین</strong><span>وقتی کمتر از ۵۰٪ تمرین‌های ۱۴ روز اخیر انجام شده باشد</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار عدم فعالیت</strong><span>پس از ۱۴ روز بدون تمرین یا چک‌این</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار افت عملکرد</strong><span>با کاهش وزنه یا تکرار در ثبت‌های متوالی</span></div><button className="toggle on"><i /></button></div></section><section className="panel settings-card"><h2>حریم خصوصی</h2><p>این نسخه داده‌ها را فقط روی همین مرورگر نگه می‌دارد.</p><div className="privacy-banner"><AlertCircle/><span><strong>نسخه پایلوت محلی</strong> پیش از استفاده واقعی باید احراز هویت، رمزنگاری، رضایت شاگرد و حذف داده سمت سرور پیاده‌سازی شود.</span></div></section></main></>
+  return <><Header title="تنظیمات" eyebrow="حساب و فضای کار" onMenu={() => document.body.classList.add('menu-request')} /><main className="page settings-page"><section className="panel settings-card"><h2>تنظیم تحلیل و هشدار</h2><p>آستانه‌های نسخه آزمایشی برای پایلوت مربی تنظیم شده‌اند.</p><div className="setting-row"><div><strong>هشدار پایبندی پایین</strong><span>وقتی کمتر از ۵۰٪ تمرین‌های ۱۴ روز اخیر انجام شده باشد</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار عدم فعالیت</strong><span>پس از ۱۴ روز بدون تمرین یا گزارش هفتگی</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار افت عملکرد</strong><span>با کاهش وزنه یا تکرار در ثبت‌های متوالی</span></div><button className="toggle on"><i /></button></div></section><section className="panel settings-card"><h2>حریم خصوصی</h2><p>این نسخه داده‌ها را فقط روی همین مرورگر نگه می‌دارد.</p><div className="privacy-banner"><AlertCircle/><span><strong>نسخه پایلوت محلی</strong> پیش از استفاده واقعی باید احراز هویت، رمزنگاری، رضایت شاگرد و حذف داده سمت سرور پیاده‌سازی شود.</span></div></section></main></>
+}
+
+function LoginPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
+  const [role, setRole] = useState<UserRole>('coach')
+  const [showPassword, setShowPassword] = useState(false)
+  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onLogin(role) }
+  return <main className="login-page">
+    <section className="login-story">
+      <div className="login-brand"><div className="brand-mark"><Activity/></div><strong>شاگردیتو</strong></div>
+      <div className="story-copy"><span>ساخته‌شده برای مربی‌های حرفه‌ای</span><h1>همه‌ی شاگردها، برنامه‌ها و پیگیری‌ها؛ یک‌جا و مرتب.</h1><p>کمتر درگیر کارهای پراکنده شو و بیشتر روی نتیجه‌ی شاگردهات تمرکز کن.</p></div>
+      <div className="iranian-pattern" aria-hidden="true"><i/><i/><i/><i/></div>
+      <div className="login-proof"><div><strong>+۲۴٪</strong><span>نظم بیشتر در پیگیری</span></div><div><strong>۲ دقیقه</strong><span>تا ساخت برنامه جدید</span></div></div>
+    </section>
+    <section className="login-panel"><form className="login-card" onSubmit={submit}>
+      <div className="mobile-login-brand"><Activity/><strong>شاگردیتو</strong></div>
+      <span className="welcome-chip">خوش اومدی 👋</span><h2>وارد فضای کارت شو</h2><p>نقش کاربری را انتخاب کن و ادامه بده.</p>
+      <div className="role-switch"><button type="button" className={role === 'coach' ? 'active' : ''} onClick={() => setRole('coach')}><Dumbbell size={18}/><span><b>مربی</b><small>مدیریت شاگردها</small></span></button><button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><ShieldCheck size={18}/><span><b>مدیر سیستم</b><small>مدیریت مربی‌ها</small></span></button></div>
+      <label>شماره موبایل<div className="login-input"><CircleUserRound size={19}/><input inputMode="tel" placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷" required/></div></label>
+      <label>رمز عبور<div className="login-input"><LockKeyhole size={19}/><input type={showPassword ? 'text' : 'password'} placeholder="حداقل ۶ کاراکتر" minLength={6} defaultValue="123456" required/><button type="button" onClick={() => setShowPassword(value => !value)}>{showPassword ? 'پنهان' : 'نمایش'}</button></div></label>
+      <div className="login-help"><label><input type="checkbox" defaultChecked/> من را به خاطر بسپار</label><button type="button">رمزت یادت رفته؟</button></div>
+      <button className="login-submit" type="submit">ورود به پنل {role === 'coach' ? 'مربی' : 'مدیریت'} <ArrowLeft size={19}/></button>
+      <small className="demo-note">برای مشاهده نسخه نمایشی، هر شماره‌ای وارد کنید.</small>
+    </form></section>
+  </main>
+}
+
+function AdminPanel({ students, logout }: { students: Student[]; logout: () => void }) {
+  const coaches = [
+    { name: 'مهدی حسینی', specialty: 'بدنسازی و تناسب اندام', students: students.length, status: 'فعال' },
+    { name: 'سارا مرادی', specialty: 'فیتنس بانوان', students: 18, status: 'فعال' },
+    { name: 'علی رضوانی', specialty: 'آمادگی جسمانی', students: 11, status: 'در انتظار تأیید' },
+  ]
+  return <div className="admin-shell"><header className="admin-header"><div className="login-brand"><div className="brand-mark"><Activity/></div><strong>شاگردیتو</strong><span>مدیریت</span></div><button onClick={logout}><LogOut size={18}/> خروج</button></header><main className="admin-main">
+    <div className="admin-title"><div><span>پنل مدیریت</span><h1>نمای کلی کسب‌وکار</h1><p>وضعیت مربی‌ها و فضای کاری شاگردیتو را یک‌جا ببینید.</p></div><button className="button primary"><UserPlus size={18}/> افزودن مربی</button></div>
+    <section className="admin-stats"><article><i><UserCog/></i><span>مربی فعال<strong>۲۴</strong><small>۳ نفر این ماه اضافه شدند</small></span></article><article><i><Users/></i><span>کل شاگردها<strong>{faNumber(students.length + 142)}</strong><small>در ۲۴ فضای کاری</small></span></article><article><i><Building2/></i><span>اشتراک‌های حرفه‌ای<strong>۱۸</strong><small>۷۵٪ نرخ تبدیل</small></span></article></section>
+    <section className="panel admin-table"><div className="panel-heading"><div><h3>مربی‌های اخیر</h3><p>مدیریت دسترسی و وضعیت حساب مربی‌ها</p></div><div className="search-box"><Search size={17}/><input placeholder="جست‌وجوی مربی..."/></div></div><div className="admin-row admin-row-head"><span>مربی</span><span>تخصص</span><span>شاگردها</span><span>وضعیت</span><span/></div>{coaches.map(coach => <div className="admin-row" key={coach.name}><span className="student-cell"><div className="coach-avatar">{coach.name.split(' ').map(x => x[0]).join('‌')}</div><b>{coach.name}</b></span><span>{coach.specialty}</span><span>{faNumber(coach.students)} نفر</span><span><i className={coach.status === 'فعال' ? 'admin-active' : 'admin-pending'}>{coach.status}</i></span><button>جزئیات</button></div>)}</section>
+  </main></div>
 }
 
 function AddStudentModal({ close, add }: { close: () => void; add: (student: Student) => void }) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const name = String(data.get('name'))
     const now = new Date().toISOString()
-    add({ id: crypto.randomUUID(), name, initials: name.split(' ').map(x => x[0]).slice(0,2).join('‌'), color: '#8aaea0', phone: String(data.get('phone')), goal: String(data.get('goal')), plan: String(data.get('plan')), joinedAt: now, lastContact: now, sessionsPlanned: 0, sessionsAttended: 0, program: { id: crypto.randomUUID(), title: 'برنامه هفتگی جدید', weekLabel: 'هفته جاری', updatedAt: now, days: [] }, workoutLogs: [], measurements: [], checkIns: [], timeline: [{ id: crypto.randomUUID(), date: now, type: 'note', title: 'شاگرد اضافه شد', body: 'پروفایل شاگرد در همراه ساخته شد.' }] })
+    add({ id: crypto.randomUUID(), name, initials: name.split(' ').map(x => x[0]).slice(0,2).join('‌'), color: '#8aaea0', phone: String(data.get('phone')), goal: String(data.get('goal')), plan: String(data.get('plan')), joinedAt: now, lastContact: now, sessionsPlanned: 0, sessionsAttended: 0, program: { id: crypto.randomUUID(), title: 'برنامه هفتگی جدید', weekLabel: 'هفته جاری', updatedAt: now, days: [] }, workoutLogs: [], measurements: [], checkIns: [], timeline: [{ id: crypto.randomUUID(), date: now, type: 'note', title: 'شاگرد اضافه شد', body: 'پروفایل شاگرد در شاگردیتو ساخته شد.' }] })
   }
   return <div className="modal-layer"><form className="modal" onSubmit={submit}><button type="button" className="modal-close" onClick={close}><X/></button><div className="modal-icon"><UserPlus/></div><h2>افزودن شاگرد جدید</h2><p>برای شروع فقط اطلاعات ضروری را وارد کنید.</p><label>نام و نام خانوادگی<input name="name" required placeholder="مثلاً الهام محمودی" /></label><div className="two-fields"><label>شماره تماس<input name="phone" required placeholder="۰۹۱۲..." /></label><label>نوع همکاری<select name="plan"><option>حضوری</option><option>آنلاین</option><option>حضوری + آنلاین</option></select></label></div><label>هدف اصلی<input name="goal" required placeholder="مثلاً کاهش وزن و تناسب اندام" /></label><button className="button primary full" type="submit">ساخت پروفایل شاگرد</button></form></div>
 }
@@ -287,23 +339,27 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => { try { const saved = localStorage.getItem(STORAGE_KEY); const parsed = saved ? JSON.parse(saved) as Student[] : null; return parsed?.every(student => student.program && student.workoutLogs && student.measurements) ? parsed : seedStudents } catch { return seedStudents } })
   const [page, setPage] = useState<Page>('dashboard')
   const [selectedId, setSelectedId] = useState<string>(seedStudents[0].id)
-  const [mode, setMode] = useState<'coach' | 'client'>('coach')
+  const [role, setRole] = useState<UserRole | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(students)) }, [students])
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.querySelector('.content-shell')?.scrollTo({ top: 0 }) }, [page])
   useEffect(() => {
     const observer = new MutationObserver(() => { if (document.body.classList.contains('menu-request')) { setMenuOpen(true); document.body.classList.remove('menu-request') } })
     observer.observe(document.body, { attributes: true }); return () => observer.disconnect()
   }, [])
   const openStudent = (id: string) => { setSelectedId(id); setPage('profile'); window.scrollTo({ top: 0 }) }
+  const navigate = (next: Page) => { setPage(next); setMenuOpen(false); window.scrollTo({ top: 0, left: 0 }) }
   const updateStudent = (next: Student) => setStudents(current => current.map(s => s.id === next.id ? next : s))
   const selected = students.find(s => s.id === selectedId)
-  if (mode === 'client') return <ClientApp students={students} selectedId={selectedId} selectStudent={setSelectedId} updateStudent={updateStudent} exit={() => setMode('coach')} />
-  return <div className="app-shell"><Sidebar page={page} onNavigate={setPage} open={menuOpen} close={() => setMenuOpen(false)} onClientPreview={() => setMode('client')} /><div className="content-shell">
-    {page === 'dashboard' && <Dashboard students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} navigate={setPage} />}
+  const logout = () => { setRole(null); setPage('dashboard'); window.scrollTo({ top: 0 }) }
+  if (!role) return <LoginPage onLogin={setRole}/>
+  if (role === 'admin') return <AdminPanel students={students} logout={logout}/>
+  return <div className="app-shell"><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} /><div className="content-shell">
+    {page === 'dashboard' && <Dashboard students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} navigate={navigate} />}
     {page === 'students' && <StudentsPage students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} />}
     {page === 'checkins' && <CheckInsPage students={students} updateStudent={updateStudent} />}
     {page === 'settings' && <SettingsPage />}
-    {page === 'profile' && selected && <ProfilePage student={selected} updateStudent={updateStudent} goBack={() => setPage('students')} />}
+    {page === 'profile' && selected && <ProfilePage student={selected} updateStudent={updateStudent} goBack={() => navigate('students')} />}
   </div>{showAdd && <AddStudentModal close={() => setShowAdd(false)} add={student => { setStudents(s => [...s, student]); setShowAdd(false); openStudent(student.id) }} />}</div>
 }

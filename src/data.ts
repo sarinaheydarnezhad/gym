@@ -61,7 +61,7 @@ export const seedStudents: Student[] = [
     program: makeProgram('sa', 'کاهش وزن'), workoutLogs: makeLogs('sa', 2, [80, 77.5]), measurements: makeMeasurements('sa', 72.8),
     checkIns: [ci('s1', 2, 2, 2, 3, 45, 72.8, 2, '', 'این هفته خیلی خسته بودم و دو جلسه را نرسیدم.'), ci('s2', 9, 3, 3, 3, 65, 72.4), ci('s3', 16, 4, 4, 4, 85, 72.1), ci('s4', 23, 4, 4, 4, 90, 72.3)],
     timeline: [
-      { id: 'st1', date: daysAgo(2), type: 'checkin', title: 'چک‌این هفتگی ثبت شد', body: 'انرژی ۲ از ۵ · انجام تمرین ۴۵٪', important: true },
+      { id: 'st1', date: daysAgo(2), type: 'checkin', title: 'گزارش هفتگی ثبت شد', body: 'انرژی ۲ از ۵ · انجام تمرین ۴۵٪', important: true },
       { id: 'st2', date: daysAgo(12), type: 'message', title: 'آخرین گفت‌وگو', body: 'درباره تنظیم زمان تمرین صحبت شد.' },
       { id: 'st3', date: daysAgo(28), type: 'measurement', title: 'اندازه‌گیری ماهانه', body: 'وزن ۷۲٫۶ کیلوگرم · دور کمر ۸۳ سانتی‌متر' },
     ],
@@ -81,7 +81,7 @@ export const seedStudents: Student[] = [
     program: makeProgram('ni', 'تناسب اندام'), workoutLogs: makeLogs('ni', 4, [70, 67.5, 67.5, 65]), measurements: makeMeasurements('ni', 64.1),
     checkIns: [ci('n1', 5, 3, 3, 2, 70, 64.1, 3, '', 'رعایت تغذیه آخر هفته سخت بود.'), ci('n2', 12, 3, 4, 3, 75, 63.7), ci('n3', 19, 4, 4, 4, 85, 63.9)],
     timeline: [
-      { id: 'nt1', date: daysAgo(5), type: 'checkin', title: 'چک‌این هفتگی', body: 'تغذیه ۲ از ۵ · انرژی ۳ از ۵' },
+      { id: 'nt1', date: daysAgo(5), type: 'checkin', title: 'گزارش هفتگی', body: 'تغذیه ۲ از ۵ · انرژی ۳ از ۵' },
       { id: 'nt2', date: daysAgo(15), type: 'message', title: 'آخرین پیگیری مربی', body: 'برنامه هفته جدید ارسال شد.' },
     ],
   },
@@ -91,7 +91,7 @@ export const seedStudents: Student[] = [
     checkIns: [ci('r1', 2, 5, 4, 5, 95, 86.2, 5), ci('r2', 9, 4, 4, 5, 95, 86.5), ci('r3', 16, 4, 4, 4, 90, 86.8)],
     timeline: [
       { id: 'rt1', date: daysAgo(1), type: 'workout', title: 'تمرین پایین‌تنه کامل شد', body: 'حجم تمرین ۸٪ نسبت به هفته قبل افزایش یافت.' },
-      { id: 'rt2', date: daysAgo(2), type: 'checkin', title: 'چک‌این هفتگی', body: 'شرایط پایدار و بدون مشکل گزارش شد.' },
+      { id: 'rt2', date: daysAgo(2), type: 'checkin', title: 'گزارش هفتگی', body: 'شرایط پایدار و بدون مشکل گزارش شد.' },
     ],
   },
   {
@@ -99,7 +99,7 @@ export const seedStudents: Student[] = [
     program: makeProgram('ma', 'بازگشت به تمرین'), workoutLogs: makeLogs('ma', 5, [50, 47.5, 47.5, 45, 45]), measurements: makeMeasurements('ma', 68.3),
     checkIns: [ci('m1', 4, 4, 4, 4, 90, 68.3, 4), ci('m2', 11, 4, 3, 4, 85, 68.5), ci('m3', 18, 3, 3, 4, 80, 68.7)],
     timeline: [
-      { id: 'mt1', date: daysAgo(4), type: 'checkin', title: 'چک‌این هفتگی', body: 'انرژی و خواب بهتر از هفته قبل است.' },
+      { id: 'mt1', date: daysAgo(4), type: 'checkin', title: 'گزارش هفتگی', body: 'انرژی و خواب بهتر از هفته قبل است.' },
       { id: 'mt2', date: daysAgo(7), type: 'message', title: 'پیگیری مربی', body: 'درباره افزایش تدریجی فشار تمرین صحبت شد.' },
     ],
   },
@@ -108,7 +108,7 @@ export const seedStudents: Student[] = [
     program: makeProgram('po', 'عضله‌سازی'), workoutLogs: makeLogs('po', 1, [70], 20), measurements: makeMeasurements('po', 75.1),
     checkIns: [ci('p1', 17, 3, 2, 3, 40, 75.1, 3), ci('p2', 24, 3, 3, 3, 60, 74.8)],
     timeline: [
-      { id: 'pt1', date: daysAgo(17), type: 'checkin', title: 'آخرین چک‌این', body: 'خواب ۲ از ۵ · انجام تمرین ۴۰٪', important: true },
+      { id: 'pt1', date: daysAgo(17), type: 'checkin', title: 'آخرین گزارش هفتگی', body: 'خواب ۲ از ۵ · انجام تمرین ۴۰٪', important: true },
       { id: 'pt2', date: daysAgo(19), type: 'message', title: 'آخرین تماس', body: 'پیام برنامه جدید خوانده شده اما پاسخی ثبت نشده است.' },
     ],
   },

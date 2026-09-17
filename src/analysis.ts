@@ -32,11 +32,11 @@ export function analyzeStudent(student: Student): StudentAnalysis {
 
   if (adherence.percent < 50) signals.push({ id: 'adherence', label: 'پایبندی پایین', detail: `در ۲ هفته اخیر فقط ${adherence.completed} مورد از ${adherence.planned} تمرین برنامه‌ریزی‌شده انجام شده`, points: 28, tone: 'danger' })
   else if (adherence.percent < 75) signals.push({ id: 'adherence', label: 'پایبندی نیازمند بررسی', detail: `در ۲ هفته اخیر ${adherence.completed} مورد از ${adherence.planned} تمرین انجام شده`, points: 16, tone: 'warning' })
-  if (!latest || dayDiff(latest.date) > 14) signals.push({ id: 'checkin', label: 'چک‌این عقب‌افتاده', detail: latest ? `${dayDiff(latest.date)} روز از آخرین چک‌این گذشته` : 'هنوز چک‌انی ثبت نشده', points: 24, tone: 'danger' })
+  if (!latest || dayDiff(latest.date) > 14) signals.push({ id: 'checkin', label: 'گزارش هفتگی عقب افتاده', detail: latest ? `${dayDiff(latest.date)} روز از آخرین گزارش گذشته` : 'هنوز گزارشی ثبت نشده', points: 24, tone: 'danger' })
 
   if (latest) {
     const recentEnergy = student.checkIns.slice(0, 2)
-    if (recentEnergy.length >= 2 && recentEnergy.every(item => item.energy <= 3) && recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length <= 2.5) signals.push({ id: 'energy', label: 'انرژی پایین', detail: `میانگین انرژی در ۲ چک‌این اخیر ${recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length} از ۵ بوده`, points: 18, tone: 'danger' })
+    if (recentEnergy.length >= 2 && recentEnergy.every(item => item.energy <= 3) && recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length <= 2.5) signals.push({ id: 'energy', label: 'انرژی پایین', detail: `میانگین انرژی در ۲ گزارش اخیر ${recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length} از ۵ بوده`, points: 18, tone: 'danger' })
     if (latest.sleep <= 2) signals.push({ id: 'sleep', label: 'خواب ناکافی', detail: `کیفیت خواب ${latest.sleep} از ۵ است`, points: 14, tone: 'warning' })
     if (latest.workoutCompletion < 60) signals.push({ id: 'completion', label: 'کاهش انجام تمرین', detail: `فقط ${latest.workoutCompletion}٪ برنامه انجام شده`, points: 20, tone: 'danger' })
     if (latest.pain) signals.push({ id: 'pain', label: 'درد گزارش‌شده', detail: latest.pain, points: 30, tone: 'danger' })
@@ -46,7 +46,7 @@ export function analyzeStudent(student: Student): StudentAnalysis {
   if (performance.state === 'decline') signals.push({ id: 'performance', label: 'افت عملکرد', detail: `وزنه Hip Thrust نسبت به شروع روند ${Math.abs(performance.change)} کیلوگرم کاهش داشته`, points: 20, tone: 'danger' })
   else if (performance.state === 'plateau') signals.push({ id: 'plateau', label: 'توقف پیشرفت', detail: 'عملکرد Hip Thrust در ۳ ثبت متوالی بدون تغییر مانده', points: 12, tone: 'warning' })
 
-  if (lastActivityDays >= 14) signals.push({ id: 'engagement', label: 'عدم فعالیت', detail: `${lastActivityDays} روز است تمرین یا چک‌این جدیدی ثبت نشده`, points: 26, tone: 'danger' })
+  if (lastActivityDays >= 14) signals.push({ id: 'engagement', label: 'عدم فعالیت', detail: `${lastActivityDays} روز است تمرین یا گزارش جدیدی ثبت نشده`, points: 26, tone: 'danger' })
 
   if (contactDays >= 14) signals.push({ id: 'contact', label: 'نیاز به پیگیری', detail: `${contactDays} روز از آخرین ارتباط گذشته`, points: 18, tone: 'warning' })
   else if (contactDays >= 10) signals.push({ id: 'contact', label: 'فاصله ارتباطی', detail: `${contactDays} روز از آخرین ارتباط گذشته`, points: 10, tone: 'info' })
@@ -62,7 +62,7 @@ export function analyzeStudent(student: Student): StudentAnalysis {
       : signals.some(s => s.id === 'adherence' || s.id === 'completion')
         ? 'مانع انجام تمرین را بپرسید و برنامه این هفته را سبک‌تر کنید.'
         : status === 'watch'
-          ? 'در چک‌این بعدی روند را دوباره بررسی کنید.'
+          ? 'در گزارش بعدی روند را دوباره بررسی کنید.'
           : 'اقدام فوری لازم نیست؛ روند معمول را ادامه دهید.'
 
   return { score, status, signals, summary, action }
@@ -81,10 +81,10 @@ export function answerStudentQuestion(student: Student, rawQuestion: string): st
     if (!latest) return 'هنوز وزن ثبت‌شده‌ای وجود ندارد.'
     const oldest = student.checkIns.at(-1)
     const change = oldest ? latest.weight - oldest.weight : 0
-    return `آخرین وزن ${latest.weight.toLocaleString('fa-IR')} کیلوگرم است؛ نسبت به ${student.checkIns.length.toLocaleString('fa-IR')} چک‌این اخیر ${Math.abs(change).toLocaleString('fa-IR')} کیلوگرم ${change > 0 ? 'افزایش' : change < 0 ? 'کاهش' : 'بدون تغییر'} داشته است.`
+    return `آخرین وزن ${latest.weight.toLocaleString('fa-IR')} کیلوگرم است؛ نسبت به ${student.checkIns.length.toLocaleString('fa-IR')} گزارش اخیر ${Math.abs(change).toLocaleString('fa-IR')} کیلوگرم ${change > 0 ? 'افزایش' : change < 0 ? 'کاهش' : 'بدون تغییر'} داشته است.`
   }
   if (/تماس|پیام|صحبت|پیگیری/.test(q)) return `${dayDiff(student.lastContact).toLocaleString('fa-IR')} روز از آخرین ارتباط گذشته است. ${analysis.action}`
-  if (/خواب|انرژی|حال|روحیه/.test(q) && latest) return `در آخرین چک‌این، انرژی ${latest.energy.toLocaleString('fa-IR')}، خواب ${latest.sleep.toLocaleString('fa-IR')} و حال عمومی ${latest.mood.toLocaleString('fa-IR')} از ۵ بوده است.`
-  if (/چرا|توجه|وضعیت|خلاصه/.test(q)) return `${student.name} با امتیاز توجه ${analysis.score.toLocaleString('fa-IR')} از ۱۰۰ در وضعیت «${analysis.status === 'attention' ? 'نیازمند توجه' : analysis.status === 'watch' ? 'زیر نظر' : 'پایدار'}» است. دلیل اصلی: ${analysis.summary}. پیشنهاد: ${analysis.action}`
+  if (/خواب|انرژی|حال|روحیه/.test(q) && latest) return `در آخرین گزارش، انرژی ${latest.energy.toLocaleString('fa-IR')}، خواب ${latest.sleep.toLocaleString('fa-IR')} و حال عمومی ${latest.mood.toLocaleString('fa-IR')} از ۵ بوده است.`
+  if (/چرا|توجه|پیگیری|وضعیت|خلاصه/.test(q)) return `${student.name} با امتیاز پیگیری ${analysis.score.toLocaleString('fa-IR')} از ۱۰۰ در وضعیت «${analysis.status === 'attention' ? 'بهتره امروز پیگیری بشه' : analysis.status === 'watch' ? 'زیر نظر' : 'روبه‌راه'}» است. دلیل اصلی: ${analysis.summary}. پیشنهاد: ${analysis.action}`
   return `بر اساس اطلاعات فعلی، ${analysis.summary}. ${analysis.action}`
 }
