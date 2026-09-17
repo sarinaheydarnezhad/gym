@@ -22,6 +22,56 @@ export interface TimelineItem {
   important?: boolean
 }
 
+export interface ExercisePrescription {
+  id: string
+  name: string
+  sets: number
+  reps: string
+  targetWeight?: number
+  note?: string
+}
+
+export interface WorkoutDay {
+  id: string
+  dayIndex: number
+  title: string
+  exercises: ExercisePrescription[]
+}
+
+export interface WeeklyProgram {
+  id: string
+  title: string
+  weekLabel: string
+  days: WorkoutDay[]
+  updatedAt: string
+}
+
+export interface ExerciseResult {
+  exerciseId: string
+  exerciseName: string
+  completed: boolean
+  actualWeight?: number
+  actualReps?: number
+}
+
+export interface WorkoutLog {
+  id: string
+  workoutDayId: string
+  workoutTitle: string
+  date: string
+  completed: boolean
+  results: ExerciseResult[]
+}
+
+export interface Measurement {
+  id: string
+  date: string
+  weight: number
+  waist?: number
+  hip?: number
+  chest?: number
+}
+
 export interface Student {
   id: string
   name: string
@@ -34,6 +84,9 @@ export interface Student {
   lastContact: string
   sessionsPlanned: number
   sessionsAttended: number
+  program: WeeklyProgram
+  workoutLogs: WorkoutLog[]
+  measurements: Measurement[]
   checkIns: CheckIn[]
   timeline: TimelineItem[]
 }

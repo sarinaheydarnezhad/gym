@@ -2,24 +2,51 @@ import type { Signal, Student, StudentAnalysis } from './types'
 
 export const dayDiff = (date: string) => Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86400000))
 
+export function calculateAdherence(student: Student, days = 14) {
+  const weeks = days / 7
+  const planned = Math.max(1, Math.round((student.program?.days.length || 0) * weeks))
+  const completed = (student.workoutLogs || []).filter(log => log.completed && dayDiff(log.date) <= days).length
+  return { planned, completed, percent: Math.min(100, Math.round(completed / planned * 100)) }
+}
+
+export function getExerciseTrend(student: Student, exerciseName = 'Hip Thrust') {
+  const values = (student.workoutLogs || [])
+    .flatMap(log => log.results.filter(result => result.completed && result.exerciseName === exerciseName).map(result => ({ date: log.date, weight: result.actualWeight || 0, reps: result.actualReps || 0 })))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  if (values.length < 2) return { values, change: 0, state: 'insufficient' as const }
+  const change = values.at(-1)!.weight - values[0].weight
+  const recent = values.slice(-3)
+  const plateau = recent.length >= 3 && Math.max(...recent.map(v => v.weight)) === Math.min(...recent.map(v => v.weight))
+  return { values, change, state: change < 0 ? 'decline' as const : plateau ? 'plateau' as const : change > 0 ? 'improving' as const : 'stable' as const }
+}
+
 export function analyzeStudent(student: Student): StudentAnalysis {
   const signals: Signal[] = []
   const latest = student.checkIns[0]
   const previous = student.checkIns[1]
   const contactDays = dayDiff(student.lastContact)
-  const attendance = student.sessionsPlanned ? student.sessionsAttended / student.sessionsPlanned : 1
+  const adherence = calculateAdherence(student)
+  const performance = getExerciseTrend(student)
+  const lastWorkout = student.workoutLogs?.[0]?.date
+  const lastActivityDays = Math.min(latest ? dayDiff(latest.date) : 999, lastWorkout ? dayDiff(lastWorkout) : 999)
 
-  if (attendance < 0.6) signals.push({ id: 'attendance', label: 'افت حضور', detail: `فقط ${Math.round(attendance * 100)}٪ جلسات این ماه انجام شده`, points: 28, tone: 'danger' })
-  else if (attendance < 0.78) signals.push({ id: 'attendance', label: 'حضور نامنظم', detail: `${Math.round(attendance * 100)}٪ جلسات این ماه انجام شده`, points: 16, tone: 'warning' })
+  if (adherence.percent < 50) signals.push({ id: 'adherence', label: 'پایبندی پایین', detail: `در ۲ هفته اخیر فقط ${adherence.completed} مورد از ${adherence.planned} تمرین برنامه‌ریزی‌شده انجام شده`, points: 28, tone: 'danger' })
+  else if (adherence.percent < 75) signals.push({ id: 'adherence', label: 'پایبندی نیازمند بررسی', detail: `در ۲ هفته اخیر ${adherence.completed} مورد از ${adherence.planned} تمرین انجام شده`, points: 16, tone: 'warning' })
   if (!latest || dayDiff(latest.date) > 14) signals.push({ id: 'checkin', label: 'چک‌این عقب‌افتاده', detail: latest ? `${dayDiff(latest.date)} روز از آخرین چک‌این گذشته` : 'هنوز چک‌انی ثبت نشده', points: 24, tone: 'danger' })
 
   if (latest) {
-    if (latest.energy <= 2) signals.push({ id: 'energy', label: 'انرژی پایین', detail: `انرژی ${latest.energy} از ۵ گزارش شده`, points: 18, tone: 'danger' })
+    const recentEnergy = student.checkIns.slice(0, 2)
+    if (recentEnergy.length >= 2 && recentEnergy.every(item => item.energy <= 3) && recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length <= 2.5) signals.push({ id: 'energy', label: 'انرژی پایین', detail: `میانگین انرژی در ۲ چک‌این اخیر ${recentEnergy.reduce((sum, item) => sum + item.energy, 0) / recentEnergy.length} از ۵ بوده`, points: 18, tone: 'danger' })
     if (latest.sleep <= 2) signals.push({ id: 'sleep', label: 'خواب ناکافی', detail: `کیفیت خواب ${latest.sleep} از ۵ است`, points: 14, tone: 'warning' })
     if (latest.workoutCompletion < 60) signals.push({ id: 'completion', label: 'کاهش انجام تمرین', detail: `فقط ${latest.workoutCompletion}٪ برنامه انجام شده`, points: 20, tone: 'danger' })
     if (latest.pain) signals.push({ id: 'pain', label: 'درد گزارش‌شده', detail: latest.pain, points: 30, tone: 'danger' })
     if (previous && latest.energy < previous.energy) signals.push({ id: 'trend', label: 'روند انرژی نزولی', detail: `از ${previous.energy} به ${latest.energy} رسیده`, points: 8, tone: 'info' })
   }
+
+  if (performance.state === 'decline') signals.push({ id: 'performance', label: 'افت عملکرد', detail: `وزنه Hip Thrust نسبت به شروع روند ${Math.abs(performance.change)} کیلوگرم کاهش داشته`, points: 20, tone: 'danger' })
+  else if (performance.state === 'plateau') signals.push({ id: 'plateau', label: 'توقف پیشرفت', detail: 'عملکرد Hip Thrust در ۳ ثبت متوالی بدون تغییر مانده', points: 12, tone: 'warning' })
+
+  if (lastActivityDays >= 14) signals.push({ id: 'engagement', label: 'عدم فعالیت', detail: `${lastActivityDays} روز است تمرین یا چک‌این جدیدی ثبت نشده`, points: 26, tone: 'danger' })
 
   if (contactDays >= 14) signals.push({ id: 'contact', label: 'نیاز به پیگیری', detail: `${contactDays} روز از آخرین ارتباط گذشته`, points: 18, tone: 'warning' })
   else if (contactDays >= 10) signals.push({ id: 'contact', label: 'فاصله ارتباطی', detail: `${contactDays} روز از آخرین ارتباط گذشته`, points: 10, tone: 'info' })
@@ -32,7 +59,7 @@ export function analyzeStudent(student: Student): StudentAnalysis {
     ? 'قبل از تمرین بعدی درباره درد تماس بگیرید و حرکت محرک را بررسی کنید.'
     : signals.some(s => s.id === 'contact')
       ? 'امروز یک پیام کوتاه و شخصی برای پیگیری ارسال کنید.'
-      : signals.some(s => s.id === 'attendance' || s.id === 'completion')
+      : signals.some(s => s.id === 'adherence' || s.id === 'completion')
         ? 'مانع انجام تمرین را بپرسید و برنامه این هفته را سبک‌تر کنید.'
         : status === 'watch'
           ? 'در چک‌این بعدی روند را دوباره بررسی کنید.'
