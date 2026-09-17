@@ -136,25 +136,40 @@ function TrendChart({ student }: { student: Student }) {
 }
 
 function ProgramPanel({ student, updateStudent }: { student: Student; updateStudent: (student: Student) => void }) {
+  const [customExercise, setCustomExercise] = useState('')
+  const [showShare, setShowShare] = useState(false)
   const library = ['Hip Thrust', 'Goblet Squat', 'Romanian Deadlift', 'Lat Pulldown', 'Dumbbell Press', 'Leg Press']
+  const touchProgram = (program: Student['program']) => updateStudent({ ...student, program: { ...program, updatedAt: new Date().toISOString() } })
   const updateExercise = (dayId: string, exerciseId: string, field: keyof ExercisePrescription, value: string | number) => {
-    updateStudent({ ...student, program: { ...student.program, updatedAt: new Date().toISOString(), days: student.program.days.map(day => day.id !== dayId ? day : { ...day, exercises: day.exercises.map(exercise => exercise.id !== exerciseId ? exercise : { ...exercise, [field]: value }) }) } })
+    touchProgram({ ...student.program, days: student.program.days.map(day => day.id !== dayId ? day : { ...day, exercises: day.exercises.map(exercise => exercise.id !== exerciseId ? exercise : { ...exercise, [field]: value }) }) })
   }
   const addExercise = (dayId: string, name: string) => {
     const exercise: ExercisePrescription = { id: crypto.randomUUID(), name, sets: 3, reps: '۱۰', targetWeight: 0 }
-    updateStudent({ ...student, program: { ...student.program, updatedAt: new Date().toISOString(), days: student.program.days.map(day => day.id === dayId ? { ...day, exercises: [...day.exercises, exercise] } : day) } })
+    touchProgram({ ...student.program, days: student.program.days.map(day => day.id === dayId ? { ...day, exercises: [...day.exercises, exercise] } : day) })
   }
+  const addCustomExercise = (dayId: string) => { const name = customExercise.trim(); if (!name) return; addExercise(dayId, name); setCustomExercise('') }
+  const removeExercise = (dayId: string, exerciseId: string) => touchProgram({ ...student.program, days: student.program.days.map(day => day.id === dayId ? { ...day, exercises: day.exercises.filter(exercise => exercise.id !== exerciseId) } : day) })
+  const renameDay = (dayId: string, title: string) => touchProgram({ ...student.program, days: student.program.days.map(day => day.id === dayId ? { ...day, title } : day) })
+  const removeDay = (dayId: string) => touchProgram({ ...student.program, days: student.program.days.filter(day => day.id !== dayId) })
   const addDay = () => {
     const day: WorkoutDay = { id: crypto.randomUUID(), dayIndex: (student.program.days.at(-1)?.dayIndex ?? 0) + 1 > 6 ? 0 : (student.program.days.at(-1)?.dayIndex ?? 0) + 1, title: 'جلسه جدید', exercises: [] }
-    updateStudent({ ...student, program: { ...student.program, updatedAt: new Date().toISOString(), days: [...student.program.days, day] } })
+    touchProgram({ ...student.program, days: [...student.program.days, day] })
+  }
+  const share = async (months: number, price: string) => {
+    const url = `${window.location.origin}${window.location.pathname}?program=${student.id}&plan=${months}`
+    touchProgram({ ...student.program, sentAt: new Date().toISOString(), coachName: 'مهدی حسینی' })
+    try { if (navigator.share) await navigator.share({ title: `برنامه ${student.name}`, text: `اشتراک ${months} ماهه برنامه تمرینی`, url }); else await navigator.clipboard.writeText(url) } catch { /* dismissed */ }
+    setShowShare(false)
   }
   return <section className="program-panel">
-    <div className="program-toolbar"><div><small>برنامه فعال</small><h2>{student.program.title}</h2><p>{faNumber(student.program.days.length)} جلسه در هفته · آخرین ویرایش {relativeDate(student.program.updatedAt)}</p></div><button className="button secondary" onClick={addDay}><Plus size={17}/> افزودن روز</button></div>
-    <div className="program-days">{student.program.days.map((day, dayIndex) => <article className="program-day panel" key={day.id}><div className="program-day-head"><div className="day-number">{faNumber(dayIndex + 1)}</div><div><strong>{day.title}</strong><span>{dayNames[day.dayIndex]}</span></div><span>{faNumber(day.exercises.length)} حرکت</span></div>
+    <div className="program-toolbar"><div><small>برنامه فعال</small><input className="program-title-input" value={student.program.title} onChange={e => touchProgram({ ...student.program, title: e.target.value })}/><p>{faNumber(student.program.days.length)} جلسه در هفته · آخرین ویرایش {relativeDate(student.program.updatedAt)}</p></div><div className="program-toolbar-actions"><button className="button share-program" onClick={() => setShowShare(true)}><Share2 size={17}/> اشتراک برنامه</button><button className="button secondary" onClick={addDay}><Plus size={17}/> افزودن جلسه</button></div></div>
+    <div className="program-days">{student.program.days.map((day, dayIndex) => <article className="program-day panel" key={day.id}><div className="program-day-head"><div className="day-number">{faNumber(dayIndex + 1)}</div><div><input className="day-title-input" value={day.title} onChange={e => renameDay(day.id, e.target.value)} /><span>{dayNames[day.dayIndex]}</span></div><span>{faNumber(day.exercises.length)} حرکت</span><button className="delete-day" onClick={() => removeDay(day.id)} title="حذف جلسه"><X size={15}/></button></div>
       <div className="exercise-editor-head"><span>حرکت</span><span>ست</span><span>تکرار</span><span>وزنه هدف</span></div>
-      {day.exercises.map(exercise => <div className="exercise-editor-row" key={exercise.id}><div><strong>{exercise.name}</strong>{exercise.note && <small>{exercise.note}</small>}</div><input type="number" value={exercise.sets} min="1" onChange={e => updateExercise(day.id, exercise.id, 'sets', Number(e.target.value))}/><input value={exercise.reps} onChange={e => updateExercise(day.id, exercise.id, 'reps', e.target.value)}/><label><input type="number" value={exercise.targetWeight || ''} min="0" onChange={e => updateExercise(day.id, exercise.id, 'targetWeight', Number(e.target.value))}/><small>kg</small></label></div>)}
-      <div className="library-add"><span>افزودن سریع:</span>{library.filter(name => !day.exercises.some(ex => ex.name === name)).slice(0, 3).map(name => <button key={name} onClick={() => addExercise(day.id, name)}><Plus size={12}/>{name}</button>)}</div>
+      {day.exercises.map(exercise => <div className="exercise-editor-row" key={exercise.id}><div><strong>{exercise.name}</strong>{exercise.note && <small>{exercise.note}</small>}</div><input type="number" value={exercise.sets} min="1" onChange={e => updateExercise(day.id, exercise.id, 'sets', Number(e.target.value))}/><input value={exercise.reps} onChange={e => updateExercise(day.id, exercise.id, 'reps', e.target.value)}/><label><input type="number" value={exercise.targetWeight || ''} min="0" onChange={e => updateExercise(day.id, exercise.id, 'targetWeight', Number(e.target.value))}/><small>kg</small></label><button className="delete-exercise" onClick={() => removeExercise(day.id, exercise.id)} title="حذف حرکت"><X size={14}/></button></div>)}
+      <div className="library-add"><span>افزودن سریع:</span>{library.filter(name => !day.exercises.some(ex => ex.name === name)).slice(0, 3).map(name => <button key={name} onClick={() => addExercise(day.id, name)}><Plus size={12}/>{name}</button>)}<div className="custom-exercise"><input value={customExercise} onChange={e => setCustomExercise(e.target.value)} placeholder="نام حرکت دلخواه مربی..." onKeyDown={e => e.key === 'Enter' && addCustomExercise(day.id)}/><button onClick={() => addCustomExercise(day.id)}><Plus size={14}/> افزودن حرکت</button></div></div>
     </article>)}</div>
+    {!student.program.days.length && <EmptyState icon={<Dumbbell/>} title="اولین جلسه را بسازید" text="جلسه جدید اضافه کنید و حرکت‌ها را خودتان بنویسید." />}
+    {showShare && <div className="modal-layer"><div className="share-modal"><button className="modal-close" onClick={() => setShowShare(false)}><X/></button><div className="share-modal-icon"><Share2/></div><h2>اشتراک برنامه برای {student.name}</h2><p>مدت دسترسی را انتخاب کنید؛ لینک اختصاصی ساخته می‌شود.</p><div className="share-plans"><button onClick={() => share(1, '۴۹۰٬۰۰۰ تومان')}><strong>یک ماهه</strong><b>۴۹۰٬۰۰۰ تومان</b><small>شروع سریع و منعطف</small></button><button className="featured" onClick={() => share(3, '۱٬۲۹۰٬۰۰۰ تومان')}><i>پیشنهاد مربی‌ها</i><strong>سه ماهه</strong><b>۱٬۲۹۰٬۰۰۰ تومان</b><small>صرفه‌جویی بیشتر</small></button><button onClick={() => share(6, '۲٬۲۹۰٬۰۰۰ تومان')}><strong>شش ماهه</strong><b>۲٬۲۹۰٬۰۰۰ تومان</b><small>همراهی بلندمدت</small></button></div><div className="share-meta"><span><UserCog size={15}/> مربی: مهدی حسینی</span><span><CalendarDays size={15}/> تاریخ ارسال: {new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span></div></div></div>}
   </section>
 }
 
@@ -326,6 +341,12 @@ function AdminPanel({ students, logout }: { students: Student[]; logout: () => v
   </main></div>
 }
 
+function PublicProgramPage({ student }: { student: Student }) {
+  const program = student.program
+  const sentAt = program.sentAt ? new Date(program.sentAt) : new Date()
+  return <main className="public-program-page"><header className="public-program-header"><div className="login-brand"><div className="brand-mark"><Activity/></div><strong>شاگردیتو</strong></div><span>برنامه تمرینی اختصاصی</span></header><section className="public-program-hero"><div><small>برنامه اختصاصی برای</small><h1>{student.name}</h1><p>{student.goal}</p><div className="public-meta"><span><UserCog size={16}/> مربی: {program.coachName || 'مهدی حسینی'}</span><span><CalendarDays size={16}/> ارسال شده در {new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(sentAt)}</span></div></div><div className="public-badge"><Dumbbell/><span>{faNumber(program.days.length)} جلسه در هفته</span></div></section><section className="public-program-content"><div className="public-program-title"><div><span>برنامه فعال</span><h2>{program.title}</h2></div><div className="public-plan-chip">نسخه اشتراکی</div></div><div className="public-days">{program.days.map((day, index) => <article className="public-day-card" key={day.id}><div className="public-day-top"><div className="day-number">{faNumber(index + 1)}</div><div><small>{dayNames[day.dayIndex]}</small><h3>{day.title}</h3></div><span>{faNumber(day.exercises.length)} حرکت</span></div><div className="public-exercises">{day.exercises.map(exercise => <div key={exercise.id}><span><b>{exercise.name}</b>{exercise.note && <small>{exercise.note}</small>}</span><strong>{faNumber(exercise.sets)} ست × {exercise.reps}{exercise.targetWeight ? ` · ${exercise.targetWeight.toLocaleString('fa-IR')} ک‌گ` : ''}</strong></div>)}</div></article>)}</div><footer className="public-program-footer"><Activity size={18}/><span>این برنامه در شاگردیتو ساخته شده و فقط برای شما قابل مشاهده است.</span></footer></section></main>
+}
+
 function AddStudentModal({ close, add }: { close: () => void; add: (student: Student) => void }) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const name = String(data.get('name'))
@@ -353,6 +374,9 @@ export default function App() {
   const updateStudent = (next: Student) => setStudents(current => current.map(s => s.id === next.id ? next : s))
   const selected = students.find(s => s.id === selectedId)
   const logout = () => { setRole(null); setPage('dashboard'); window.scrollTo({ top: 0 }) }
+  const sharedProgramId = new URLSearchParams(window.location.search).get('program')
+  const sharedStudent = sharedProgramId ? students.find(student => student.id === sharedProgramId) : undefined
+  if (sharedStudent) return <PublicProgramPage student={sharedStudent}/>
   if (!role) return <LoginPage onLogin={setRole}/>
   if (role === 'admin') return <AdminPanel students={students} logout={logout}/>
   return <div className="app-shell"><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} /><div className="content-shell">

@@ -44,6 +44,8 @@ export interface WeeklyProgram {
   weekLabel: string
   days: WorkoutDay[]
   updatedAt: string
+  coachName?: string
+  sentAt?: string
 }
 
 export interface ExerciseResult {
