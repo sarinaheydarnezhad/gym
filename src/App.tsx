@@ -318,8 +318,19 @@ function CoachBottomNav({ page, navigate, quick }: { page: Page; navigate: (page
   return <nav className="coach-bottom-nav"><button className={page === 'dashboard' ? 'active' : ''} onClick={() => navigate('dashboard')}><LayoutDashboard/><span>خانه</span></button><button className={page === 'students' || page === 'profile' ? 'active' : ''} onClick={() => navigate('students')}><Users/><span>شاگردها</span></button><button className="coach-fab" onClick={quick} aria-label="اقدام سریع"><Plus/></button><button className={page === 'library' ? 'active' : ''} onClick={() => navigate('library')}><BookOpen/><span>کتابخانه</span></button><button className={page === 'settings' ? 'active' : ''} onClick={() => navigate('settings')}><CircleUserRound/><span>پروفایل</span></button></nav>
 }
 
-function SettingsPage() {
-  return <><Header title="تنظیمات" eyebrow="حساب و فضای کار" onMenu={() => document.body.classList.add('menu-request')} /><main className="page settings-page"><section className="panel settings-card"><h2>تنظیم تحلیل و هشدار</h2><p>آستانه‌های نسخه آزمایشی برای پایلوت مربی تنظیم شده‌اند.</p><div className="setting-row"><div><strong>هشدار پایبندی پایین</strong><span>وقتی کمتر از ۵۰٪ تمرین‌های ۱۴ روز اخیر انجام شده باشد</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار عدم فعالیت</strong><span>پس از ۱۴ روز بدون تمرین یا گزارش هفتگی</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار افت عملکرد</strong><span>با کاهش وزنه یا تکرار در ثبت‌های متوالی</span></div><button className="toggle on"><i /></button></div></section><section className="panel settings-card"><h2>حریم خصوصی</h2><p>این نسخه داده‌ها را فقط روی همین مرورگر نگه می‌دارد.</p><div className="privacy-banner"><AlertCircle/><span><strong>نسخه پایلوت محلی</strong> پیش از استفاده واقعی باید احراز هویت، رمزنگاری، رضایت شاگرد و حذف داده سمت سرور پیاده‌سازی شود.</span></div></section></main></>
+function SettingsPage({ dark, toggleDark }: { dark: boolean; toggleDark: () => void }) {
+  return <>
+    <Header title="تنظیمات" eyebrow="حساب و فضای کار" onMenu={() => document.body.classList.add('menu-request')} />
+    <main className="page settings-page">
+      <section className="panel settings-card theme-setting">
+        <div className="theme-preview" aria-hidden="true"><i/><i/><i/></div>
+        <div><h2>حالت محیط باشگاه</h2><p>پس‌زمینه مات، نوشته‌های پرکنتراست و رنگ زمردی برای استفاده راحت در محیط کم‌نور.</p></div>
+        <button className={`theme-button ${dark ? 'active' : ''}`} onClick={toggleDark}>{dark ? <Sun/> : <Moon/>}<span>{dark ? 'فعال؛ تغییر به روشن' : 'فعال‌کردن حالت تاریک'}</span></button>
+      </section>
+      <section className="panel settings-card"><h2>تنظیم تحلیل و هشدار</h2><p>آستانه‌های نسخه آزمایشی برای پایلوت مربی تنظیم شده‌اند.</p><div className="setting-row"><div><strong>هشدار پایبندی پایین</strong><span>وقتی کمتر از ۵۰٪ تمرین‌های ۱۴ روز اخیر انجام شده باشد</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار عدم فعالیت</strong><span>پس از ۱۴ روز بدون تمرین یا گزارش هفتگی</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار افت عملکرد</strong><span>با کاهش وزنه یا تکرار در ثبت‌های متوالی</span></div><button className="toggle on"><i /></button></div></section>
+      <section className="panel settings-card"><h2>حریم خصوصی</h2><p>این نسخه داده‌ها را فقط روی همین مرورگر نگه می‌دارد.</p><div className="privacy-banner"><AlertCircle/><span><strong>نسخه پایلوت محلی</strong> پیش از استفاده واقعی باید احراز هویت، رمزنگاری، رضایت شاگرد و حذف داده سمت سرور پیاده‌سازی شود.</span></div></section>
+    </main>
+  </>
 }
 
 function LoginPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
@@ -405,7 +416,7 @@ export default function App() {
     {page === 'students' && <StudentsPage students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} />}
     {page === 'library' && <ExerciseLibrary />}
     {page === 'checkins' && <CheckInsPage students={students} updateStudent={updateStudent} />}
-    {page === 'settings' && <SettingsPage />}
+    {page === 'settings' && <SettingsPage dark={dark} toggleDark={() => setDark(value => !value)} />}
     {page === 'profile' && selected && <ProfilePage student={selected} updateStudent={updateStudent} goBack={() => navigate('students')} />}
   </div><CoachBottomNav page={page} navigate={navigate} quick={() => setShowQuick(true)}/>{showQuick && <div className="modal-layer quick-layer"><div className="quick-sheet"><div className="sheet-handle"/><h2>اقدام سریع</h2><button onClick={() => { setShowQuick(false); setShowAdd(true) }}><UserPlus/><span><b>افزودن شاگرد</b><small>ساخت پروفایل جدید</small></span></button><button onClick={() => { setShowQuick(false); navigate('library') }}><Dumbbell/><span><b>ساخت برنامه</b><small>انتخاب حرکت از کتابخانه</small></span></button><button onClick={() => { setShowQuick(false); navigate('checkins') }}><ClipboardCheck/><span><b>ثبت گزارش</b><small>افزودن رکورد هفتگی</small></span></button><button onClick={() => setDark(value => !value)}>{dark ? <Sun/> : <Moon/>}<span><b>{dark ? 'حالت روشن' : 'حالت تاریک باشگاه'}</b><small>کاهش درخشش صفحه</small></span></button><button className="sheet-close" onClick={() => setShowQuick(false)}>بستن</button></div></div>}{showAdd && <AddStudentModal close={() => setShowAdd(false)} add={student => { setStudents(s => [...s, student]); setShowAdd(false); openStudent(student.id) }} />}</div>
 }
