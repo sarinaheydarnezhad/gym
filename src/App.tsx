@@ -5,12 +5,13 @@ import {
   LayoutDashboard, Menu, MessageCircle, Plus, Search, Send, Settings, Sparkles,
   Target, TrendingDown, UserPlus, Users, Weight, X, ListChecks, Play, Trophy, RotateCcw,
   Share2, Copy, LogOut, ShieldCheck, LockKeyhole, UserCog, Building2,
+  BookOpen, CreditCard, Moon, Sun, UserRound, WalletCards,
 } from 'lucide-react'
 import { analyzeStudent, answerStudentQuestion, calculateAdherence, dayDiff, getExerciseTrend } from './analysis'
 import { seedStudents } from './data'
 import type { CheckIn, ExercisePrescription, Student, StudentAnalysis, TimelineItem, WorkoutDay, WorkoutLog } from './types'
 
-type Page = 'dashboard' | 'students' | 'checkins' | 'settings' | 'profile'
+type Page = 'dashboard' | 'students' | 'library' | 'checkins' | 'settings' | 'profile'
 type ClientPage = 'home' | 'plan' | 'workout' | 'progress' | 'checkin'
 type UserRole = 'coach' | 'admin'
 const STORAGE_KEY = 'hamrah-coach-students-v1'
@@ -63,7 +64,7 @@ function Sidebar({ page, onNavigate, open, close, logout }: { page: Page; onNavi
 function Header({ title, eyebrow, onMenu }: { title: string; eyebrow?: string; onMenu: () => void }) {
   return <header className="topbar">
     <div className="header-copy"><button className="menu-button" onClick={onMenu}><Menu /></button><div>{eyebrow && <small>{eyebrow}</small>}<h1>{title}</h1></div></div>
-    <div className="header-actions"><button className="icon-button" title="اعلان‌ها"><Bell size={20} /><i /></button><span className="today-date">{fullDate()}</span></div>
+    <div className="header-actions"><button className="icon-button" title="اعلان‌ها"><Bell size={20} /><i /></button><span className="today-date">{fullDate()}</span><div className="coach-photo" aria-label="مهدی حسینی"><UserRound size={20}/></div></div>
   </header>
 }
 
@@ -77,8 +78,8 @@ function Dashboard({ students, openStudent, addStudent, navigate }: { students: 
     <main className="page dashboard-page">
       <section className="hero-strip">
         <div className="hero-orb"><Sparkles /></div>
-        <div><h2>{attention.length ? `${faNumber(attention.length)} شاگرد منتظر پیگیری تو هستند` : 'امروز همه‌چیز رو‌به‌راهه'}</h2><p>بر پایه‌ی آخرین گزارش هفتگی، روند تمرین و زمان آخرین ارتباط.</p></div>
-        <div className="hero-stats"><span><b>{faNumber(attention.length)}</b>فوری</span><span><b>{faNumber(watch.length)}</b>زیر نظر</span><span><b>{faNumber(stable.length)}</b>پایدار</span></div>
+        <div><h2>{attention.length ? `خسته نباشی مهدی! امروز ${faNumber(attention.length)} تا از بچه‌ها منتظر پیگیری‌ان.` : 'خسته نباشی مهدی! امروز همه‌چیز رو‌به‌راهه.'}</h2><p>بر پایه‌ی آخرین گزارش هفتگی، روند تمرین و زمان آخرین ارتباط.</p></div>
+        <div className="hero-stats"><span><i className="mini-donut danger" style={{ '--percent': `${attention.length / Math.max(1, students.length) * 360}deg` } as CSSProperties}/><b>{faNumber(attention.length)}</b>فوری</span><span><i className="mini-donut warning" style={{ '--percent': `${watch.length / Math.max(1, students.length) * 360}deg` } as CSSProperties}/><b>{faNumber(watch.length)}</b>پیگیری</span><span><i className="mini-donut stable" style={{ '--percent': `${stable.length / Math.max(1, students.length) * 360}deg` } as CSSProperties}/><b>{faNumber(stable.length)}</b>پایدار</span></div>
       </section>
 
       <div className="section-title"><div><h2>اولویت‌های امروز</h2><p>مهم‌ترین تغییرها، مرتب‌شده بر اساس میزان نیاز به توجه</p></div><button className="button secondary" onClick={() => navigate('students')}>همه شاگردها <ArrowLeft size={16} /></button></div>
@@ -183,10 +184,17 @@ function CheckInHistory({ student }: { student: Student }) {
   return <section className="checkin-history panel"><div className="panel-heading"><div><h3>تاریخچه گزارش‌های هفتگی</h3><p>تغییرات حال عمومی شاگرد در طول زمان</p></div><ClipboardCheck size={20}/></div>{student.checkIns.map(item => <div className="checkin-history-row" key={item.id}><time>{faDate(item.date)}</time><span><small>انرژی</small><b>{faNumber(item.energy)}/۵</b></span><span><small>خواب</small><b>{faNumber(item.sleep)}/۵</b></span><span><small>کیفیت تمرین</small><b>{faNumber(item.workoutCompletion)}٪</b></span><span className="checkin-note">{item.pain || item.note || 'بدون توضیح'}</span></div>)}</section>
 }
 
+function HealthRings({ checkIn }: { checkIn?: CheckIn }) {
+  const sleep = (checkIn?.sleep ?? 0) / 5 * 360
+  const energy = (checkIn?.energy ?? 0) / 5 * 360
+  const nutrition = (checkIn?.nutrition ?? 0) / 5 * 360
+  return <section className="panel health-card"><div className="health-rings" style={{ '--sleep': `${sleep}deg`, '--energy': `${energy}deg`, '--nutrition': `${nutrition}deg` } as CSSProperties}><i className="ring ring-sleep"/><i className="ring ring-energy"/><i className="ring ring-nutrition"/><Activity/></div><div className="health-copy"><small>وضعیت امروز</small><h3>حلقه‌های سلامت</h3><p>خواب، انرژی و تغذیه بر اساس آخرین گزارش شاگرد</p><div className="health-legend"><span><i className="turquoise"/>خواب {faNumber(checkIn?.sleep ?? 0)}/۵</span><span><i className="mustard"/>انرژی {faNumber(checkIn?.energy ?? 0)}/۵</span><span><i className="emerald"/>تغذیه {faNumber(checkIn?.nutrition ?? 0)}/۵</span></div></div></section>
+}
+
 function ProfilePage({ student, updateStudent, goBack }: { student: Student; updateStudent: (student: Student) => void; goBack: () => void }) {
   const analysis = analyzeStudent(student)
   const latest = student.checkIns[0]
-  const [tab, setTab] = useState<'overview' | 'program' | 'progress' | 'checkins' | 'timeline' | 'assistant'>('overview')
+  const [tab, setTab] = useState<'overview' | 'program' | 'progress' | 'checkins' | 'timeline' | 'finance' | 'assistant'>('overview')
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<{ q: string; a: string }[]>([])
   const [note, setNote] = useState('')
@@ -219,11 +227,11 @@ function ProfilePage({ student, updateStudent, goBack }: { student: Student; upd
   }
   return <><header className="profile-header"><button className="back-button" onClick={goBack}><ArrowLeft size={18} /> بازگشت</button><div className="profile-actions"><button className={`button share-program ${shared ? 'done' : ''}`} onClick={shareProgram}>{shared ? <Check size={17}/> : <Share2 size={17}/>} {shared ? 'لینک آماده شد' : 'اشتراک برنامه'}</button><button className="button secondary" onClick={() => setShowNote(true)}><FileText size={17} /> یادداشت جدید</button><button className="button primary" onClick={markContact}><Check size={17} /> ثبت پیگیری</button></div></header><main className="page profile-page">
     <section className="profile-identity"><Avatar student={student} size="lg" /><div><div className="name-line"><h1>{student.name}</h1><StatusPill analysis={analysis} /></div><p>{student.goal} · {student.plan}</p><div className="identity-meta"><span><CircleUserRound /> عضو از {faDate(student.joinedAt)}</span><span><MessageCircle /> آخرین ارتباط {relativeDate(student.lastContact)}</span></div></div><div className={`attention-score ${analysis.status}`}><strong>{faNumber(analysis.score)}</strong><span>ریسک ریزش</span></div></section>
-    <div className="profile-tabs"><button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>نمای کلی</button><button className={tab === 'program' ? 'active' : ''} onClick={() => setTab('program')}>برنامه تمرینی</button><button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>پیشرفت</button><button className={tab === 'checkins' ? 'active' : ''} onClick={() => setTab('checkins')}>گزارش‌های هفتگی</button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>یادداشت‌ها</button><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><Sparkles size={15} /> دستیار مربی</button></div><button className="assistant-fab" onClick={() => setTab('assistant')} aria-label="باز کردن دستیار مربی"><Bot size={20} /></button>
+    <div className="quick-messengers"><button onClick={() => window.open(`https://wa.me/${student.phone.replace(/\D/g, '').replace(/^0/, '98')}?text=${encodeURIComponent('سلام! گزارش هفتگی یادت نره 🌱')}`, '_blank')}><MessageCircle size={16}/> واتساپ</button><button onClick={() => navigator.clipboard.writeText('سلام! گزارش هفتگی یادت نره 🌱')}><Copy size={16}/> کپی یادآور</button></div><div className="profile-tabs"><button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>نمای کلی</button><button className={tab === 'program' ? 'active' : ''} onClick={() => setTab('program')}>برنامه تمرینی</button><button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>پیشرفت</button><button className={tab === 'checkins' ? 'active' : ''} onClick={() => setTab('checkins')}>گزارش‌های هفتگی</button><button className={tab === 'finance' ? 'active' : ''} onClick={() => setTab('finance')}><CreditCard size={15}/> امور مالی</button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>یادداشت‌ها</button><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><Sparkles size={15} /> دستیار مربی</button></div><button className="assistant-fab" onClick={() => setTab('assistant')} aria-label="باز کردن دستیار مربی"><Bot size={20} /></button>
 
     {tab === 'overview' && <div className="profile-grid"><div className="profile-main">
       <section className={`insight-panel ${analysis.status}`}><div className="insight-heading"><div className="insight-icon"><Sparkles /></div><div><small>جمع‌بندی شاگردیتو</small><h2>{analysis.summary}</h2></div></div><div className="insight-signals">{analysis.signals.length ? analysis.signals.map(signal => <div key={signal.id}><i className={signal.tone}>{signal.tone === 'danger' ? <AlertCircle /> : <Activity />}</i><span><strong>{signal.label}</strong><small>{signal.detail}</small></span></div>) : <p>در اطلاعات اخیر نشانه نگران‌کننده‌ای دیده نشد.</p>}</div><div className="suggested-action"><Target size={19} /><div><small>بهترین اقدام بعدی</small><p>{analysis.action}</p></div><button onClick={markContact}>انجام شد</button></div></section>
-      <section className="panel"><div className="panel-heading"><div><h3>آخرین وضعیت</h3><p>{latest ? `ثبت‌شده در ${faDate(latest.date)}` : 'هنوز گزارش هفتگی ثبت نشده'}</p></div></div>{latest && <div className="metric-cards"><div><Activity /><span>انرژی</span><b>{faNumber(latest.energy)} <small>/ ۵</small></b></div><div><Clock3 /><span>خواب</span><b>{faNumber(latest.sleep)} <small>/ ۵</small></b></div><div><Dumbbell /><span>انجام تمرین</span><b>{faNumber(latest.workoutCompletion)}٪</b></div><div><Weight /><span>وزن</span><b>{latest.weight.toLocaleString('fa-IR')} <small>ک‌گ</small></b></div></div>}</section>
+      <HealthRings checkIn={latest}/><section className="panel"><div className="panel-heading"><div><h3>آخرین وضعیت</h3><p>{latest ? `ثبت‌شده در ${faDate(latest.date)}` : 'هنوز گزارش هفتگی ثبت نشده'}</p></div></div>{latest && <div className="metric-cards"><div><Activity /><span>انرژی</span><b>{faNumber(latest.energy)} <small>/ ۵</small></b></div><div><Clock3 /><span>خواب</span><b>{faNumber(latest.sleep)} <small>/ ۵</small></b></div><div><Dumbbell /><span>انجام تمرین</span><b>{faNumber(latest.workoutCompletion)}٪</b></div><div><Weight /><span>وزن</span><b>{latest.weight.toLocaleString('fa-IR')} <small>ک‌گ</small></b></div></div>}</section>
       <section className="panel"><TrendChart student={student} /></section>
     </div><aside className="profile-side"><section className="panel quick-ask"><div className="bot-badge"><Bot /></div><h3>از دستیار مربی بپرس</h3><p>درباره روند، یادداشت‌ها یا وضعیت این شاگرد سؤال کن.</p><div className="ask-field"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="مثلاً: آخرین بار کی درد داشت؟" /><button onClick={() => ask()}><Send /></button></div><div className="suggestions"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('روند وزنش چطور بوده؟')}>روند وزن چطور بوده؟</button><button onClick={() => ask('آیا سابقه درد دارد؟')}>سابقه درد دارد؟</button></div></section><section className="panel contact-card"><h3>اطلاعات شاگرد</h3><dl><div><dt>شماره تماس</dt><dd>{student.phone}</dd></div><div><dt>هدف</dt><dd>{student.goal}</dd></div><div><dt>نوع همکاری</dt><dd>{student.plan}</dd></div></dl></section></aside></div>}
 
@@ -231,6 +239,7 @@ function ProfilePage({ student, updateStudent, goBack }: { student: Student; upd
     {tab === 'program' && <ProgramPanel student={student} updateStudent={updateStudent} />}
     {tab === 'progress' && <ProgressPanel student={student} />}
     {tab === 'checkins' && <CheckInHistory student={student} />}
+    {tab === 'finance' && <section className="finance-grid"><article className={`panel billing-status ${student.sessionsAttended >= student.sessionsPlanned ? 'expired' : ''}`}><div className="billing-icon"><WalletCards/></div><div><small>وضعیت اشتراک</small><h2>{student.sessionsAttended >= student.sessionsPlanned ? 'نیازمند تمدید' : 'اشتراک فعال'}</h2><p>{faNumber(Math.max(0, student.sessionsPlanned - student.sessionsAttended))} جلسه از پکیج باقی مانده است.</p></div><button className="button primary" onClick={() => navigator.clipboard.writeText(`سلام ${student.name} عزیز، موعد تمدید اشتراکت رسیده. برای ادامه برنامه پیام بده 🌱`)}><Copy size={16}/> کپی پیام تمدید</button></article><article className="panel payment-card"><div className="panel-heading"><div><h3>ثبت پرداخت جدید</h3><p>مناسب پرداخت کارت‌به‌کارت و ثبت دستی مربی</p></div><CreditCard/></div><div className="payment-fields"><label>مبلغ<input type="number" inputMode="numeric" placeholder="مثلاً ۱٬۵۰۰٬۰۰۰"/></label><label>تاریخ پرداخت<input type="date" defaultValue="2026-09-18"/></label><label>نوع پکیج<select><option>۳۰ روزه</option><option>۱۰ جلسه‌ای</option><option>سه ماهه</option></select></label><button className="button primary">ثبت پرداخت</button></div></article></section>}
     {tab === 'assistant' && <section className="assistant-view panel"><div className="assistant-intro"><div className="bot-badge"><Sparkles /></div><div><h2>درباره {student.name} بپرسید</h2><p>پاسخ‌ها بر اساس گزارش‌های هفتگی، اندازه‌گیری‌ها و یادداشت‌های ثبت‌شده‌اند.</p></div></div><div className="chat-area">{messages.length === 0 && <div className="chat-prompts"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('آخرین وضعیت خواب و انرژی چطور بوده؟')}>وضعیت خواب و انرژی؟</button><button onClick={() => ask('آخرین بار کی با او تماس داشتم؟')}>آخرین ارتباط چه زمانی بود؟</button></div>}{messages.map((message, index) => <div className="chat-pair" key={index}><p className="coach-message">{message.q}</p><div className="bot-message"><Sparkles size={17} /><p>{message.a}</p></div></div>)}</div><div className="chat-input"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="سؤال خود را بنویسید..." /><button onClick={() => ask()}><Send /></button></div><small className="ai-note">این جمع‌بندی ممکن است خطا داشته باشد؛ تصمیم نهایی با مربی است.</small></section>}
   </main>{showNote && <div className="modal-layer"><div className="modal small"><button className="modal-close" onClick={() => setShowNote(false)}><X /></button><h2>یادداشت جدید</h2><p>این یادداشت در حافظه و خط زمانی شاگرد باقی می‌ماند.</p><textarea autoFocus value={note} onChange={e => setNote(e.target.value)} placeholder="مثلاً: امروز هنگام اسکوات از درد زانوی راست گفت..." rows={5} /><button className="button primary full" onClick={saveNote}>ذخیره یادداشت</button></div></div>}</>
 }
@@ -300,6 +309,15 @@ function ClientApp({ students, selectedId, selectStudent, updateStudent, exit }:
   </main><nav className="client-bottom-nav"><button className={page === 'home' ? 'active' : ''} onClick={() => navigate('home')}><LayoutDashboard/><span>خانه</span></button><button className={page === 'plan' || page === 'workout' ? 'active' : ''} onClick={() => navigate('plan')}><ListChecks/><span>برنامه</span></button><button className={page === 'progress' ? 'active' : ''} onClick={() => navigate('progress')}><BarChart3/><span>پیشرفت</span></button><button className={page === 'checkin' ? 'active' : ''} onClick={() => navigate('checkin')}><ClipboardCheck/><span>چک‌این</span></button></nav></div>
 }
 
+function ExerciseLibrary() {
+  const exercises = ['اسکوات جام', 'هیپ تراست', 'ددلیفت رومانیایی', 'پرس سینه دمبل', 'لت از جلو', 'پرس پا']
+  return <><Header title="کتابخانه تمرین" eyebrow="بانک حرکات مربی" onMenu={() => document.body.classList.add('menu-request')} /><main className="page"><div className="toolbar"><div className="search-box"><Search size={19}/><input placeholder="جست‌وجوی حرکت یا عضله هدف..."/></div><button className="button primary"><Plus size={18}/> حرکت جدید</button></div><section className="exercise-library">{exercises.map((name, index) => <article className="panel exercise-library-card" key={name}><div className="exercise-visual"><Dumbbell/></div><div><small>{index % 2 ? 'پایین‌تنه' : 'بالاتنه و قدرت'}</small><h3>{name}</h3><p>راهنمای اجرای صحیح، عضلات درگیر و نکات مربی</p></div><button><ChevronLeft/></button></article>)}</section></main></>
+}
+
+function CoachBottomNav({ page, navigate, quick }: { page: Page; navigate: (page: Page) => void; quick: () => void }) {
+  return <nav className="coach-bottom-nav"><button className={page === 'dashboard' ? 'active' : ''} onClick={() => navigate('dashboard')}><LayoutDashboard/><span>خانه</span></button><button className={page === 'students' || page === 'profile' ? 'active' : ''} onClick={() => navigate('students')}><Users/><span>شاگردها</span></button><button className="coach-fab" onClick={quick} aria-label="اقدام سریع"><Plus/></button><button className={page === 'library' ? 'active' : ''} onClick={() => navigate('library')}><BookOpen/><span>کتابخانه</span></button><button className={page === 'settings' ? 'active' : ''} onClick={() => navigate('settings')}><CircleUserRound/><span>پروفایل</span></button></nav>
+}
+
 function SettingsPage() {
   return <><Header title="تنظیمات" eyebrow="حساب و فضای کار" onMenu={() => document.body.classList.add('menu-request')} /><main className="page settings-page"><section className="panel settings-card"><h2>تنظیم تحلیل و هشدار</h2><p>آستانه‌های نسخه آزمایشی برای پایلوت مربی تنظیم شده‌اند.</p><div className="setting-row"><div><strong>هشدار پایبندی پایین</strong><span>وقتی کمتر از ۵۰٪ تمرین‌های ۱۴ روز اخیر انجام شده باشد</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار عدم فعالیت</strong><span>پس از ۱۴ روز بدون تمرین یا گزارش هفتگی</span></div><button className="toggle on"><i /></button></div><div className="setting-row"><div><strong>هشدار افت عملکرد</strong><span>با کاهش وزنه یا تکرار در ثبت‌های متوالی</span></div><button className="toggle on"><i /></button></div></section><section className="panel settings-card"><h2>حریم خصوصی</h2><p>این نسخه داده‌ها را فقط روی همین مرورگر نگه می‌دارد.</p><div className="privacy-banner"><AlertCircle/><span><strong>نسخه پایلوت محلی</strong> پیش از استفاده واقعی باید احراز هویت، رمزنگاری، رضایت شاگرد و حذف داده سمت سرور پیاده‌سازی شود.</span></div></section></main></>
 }
@@ -363,7 +381,10 @@ export default function App() {
   const [role, setRole] = useState<UserRole | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showQuick, setShowQuick] = useState(false)
+  const [dark, setDark] = useState(() => localStorage.getItem('hamrah-theme') === 'dark')
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(students)) }, [students])
+  useEffect(() => { localStorage.setItem('hamrah-theme', dark ? 'dark' : 'light') }, [dark])
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.querySelector('.content-shell')?.scrollTo({ top: 0 }) }, [page])
   useEffect(() => {
     const observer = new MutationObserver(() => { if (document.body.classList.contains('menu-request')) { setMenuOpen(true); document.body.classList.remove('menu-request') } })
@@ -379,11 +400,12 @@ export default function App() {
   if (sharedStudent) return <PublicProgramPage student={sharedStudent}/>
   if (!role) return <LoginPage onLogin={setRole}/>
   if (role === 'admin') return <AdminPanel students={students} logout={logout}/>
-  return <div className="app-shell"><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} /><div className="content-shell">
+  return <div className={`app-shell ${dark ? 'dark-theme' : ''}`}><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} /><div className="content-shell">
     {page === 'dashboard' && <Dashboard students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} navigate={navigate} />}
     {page === 'students' && <StudentsPage students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} />}
+    {page === 'library' && <ExerciseLibrary />}
     {page === 'checkins' && <CheckInsPage students={students} updateStudent={updateStudent} />}
     {page === 'settings' && <SettingsPage />}
     {page === 'profile' && selected && <ProfilePage student={selected} updateStudent={updateStudent} goBack={() => navigate('students')} />}
-  </div>{showAdd && <AddStudentModal close={() => setShowAdd(false)} add={student => { setStudents(s => [...s, student]); setShowAdd(false); openStudent(student.id) }} />}</div>
+  </div><CoachBottomNav page={page} navigate={navigate} quick={() => setShowQuick(true)}/>{showQuick && <div className="modal-layer quick-layer"><div className="quick-sheet"><div className="sheet-handle"/><h2>اقدام سریع</h2><button onClick={() => { setShowQuick(false); setShowAdd(true) }}><UserPlus/><span><b>افزودن شاگرد</b><small>ساخت پروفایل جدید</small></span></button><button onClick={() => { setShowQuick(false); navigate('library') }}><Dumbbell/><span><b>ساخت برنامه</b><small>انتخاب حرکت از کتابخانه</small></span></button><button onClick={() => { setShowQuick(false); navigate('checkins') }}><ClipboardCheck/><span><b>ثبت گزارش</b><small>افزودن رکورد هفتگی</small></span></button><button onClick={() => setDark(value => !value)}>{dark ? <Sun/> : <Moon/>}<span><b>{dark ? 'حالت روشن' : 'حالت تاریک باشگاه'}</b><small>کاهش درخشش صفحه</small></span></button><button className="sheet-close" onClick={() => setShowQuick(false)}>بستن</button></div></div>}{showAdd && <AddStudentModal close={() => setShowAdd(false)} add={student => { setStudents(s => [...s, student]); setShowAdd(false); openStudent(student.id) }} />}</div>
 }
