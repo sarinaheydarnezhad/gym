@@ -318,6 +318,7 @@ input, button, select, textarea { font: inherit; }
 /* Student profile: status, timeline, then recommendation. */
 .profile-page { --profile-accent: #087f79; }
 .profile-page .profile-tabs button.active { color: var(--profile-accent); border-bottom-color: var(--profile-accent); }
+.share-limit-note { margin: -6px 0 17px; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .profile-main > .panel, .profile-main > .insight-panel { min-width: 0; }
 .profile-main .metric-cards { padding: 3px 17px 18px; }
 .profile-main .metric-cards > div { min-width: 0; }
@@ -355,6 +356,8 @@ input, button, select, textarea { font: inherit; }
 
 /* No-login student flow. */
 .client-student-name { font-size: 12px; color: var(--muted); }
+.client-message-form h3 { margin: 0 0 10px; font-size: 14px; }
+.client-message-form textarea { width: 100%; resize: vertical; min-height: 72px; padding: 11px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--card); color: inherit; }
 .client-link-error { min-height: 100vh; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 25px; text-align: center; background: #f4f6f1; }
 .client-link-error p { max-width: 480px; line-height: 1.8; color: #59645d; }
 .client-primary:disabled { opacity: .5; cursor: not-allowed; }

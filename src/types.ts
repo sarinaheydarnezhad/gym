@@ -21,6 +21,7 @@ export interface TimelineItem {
   title: string
   body: string
   important?: boolean
+  fromStudent?: boolean
 }
 
 export interface ExercisePrescription {
