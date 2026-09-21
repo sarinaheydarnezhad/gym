@@ -393,3 +393,53 @@ input, button, select, textarea { font: inherit; }
 .login-input, .role-switch > button, .admin-header > button, .login-card input, .client-header select { background: #18181b; color: #fafafa; border-color: #3f3f46; }
 .role-switch > button.active { background: #3b2d13; color: #fde68a; border-color: #f59e0b; }.welcome-chip, .public-plan-chip { background: #3b2d13; color: #fbbf24; }.login-submit, .client-primary { background: #f59e0b; color: #18181b; }.admin-stats strong { color: #fafafa; }.public-program-hero { background: linear-gradient(125deg, #27272a, #1c1917); border: 1px solid #3f3f46; }.public-program-title span, .public-day-top small, .public-exercises strong, .client-section-title small, .client-card-heading > strong { color: #f59e0b; }
 .dark-theme :is(.search-box, .ask-field, .chat-input, .checkin-info select, .field-label input, .textarea-label textarea, .actual-inputs input, .custom-exercise input, .payment-fields input, .payment-fields select) { background: #18181b; color: #fafafa; border-color: #3f3f46; }
+
+/* Actionable dashboard and accessibility pass. */
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.dashboard-page .priority-tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 0; overflow: hidden; }
+.priority-main { min-width: 0; min-height: 70px; padding: 11px 16px; border: 0; background: transparent; color: inherit; display: flex; align-items: center; gap: 12px; text-align: right; cursor: pointer; }
+.priority-main:hover { background: color-mix(in srgb, var(--card) 92%, var(--green)); }
+.priority-main:focus-visible, .priority-actions button:focus-visible { position: relative; z-index: 1; outline: 3px solid color-mix(in srgb, var(--green) 55%, transparent); outline-offset: -3px; }
+.priority-actions { display: flex; align-items: stretch; border-right: 1px solid var(--border); }
+.priority-actions button { min-width: 88px; min-height: 44px; padding: 8px 12px; border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.priority-actions button:last-child { border-left: 0; }
+.priority-actions button:hover { background: var(--green-soft); color: var(--green-dark); }
+.priority-actions button.done { background: var(--green-soft); color: var(--green-dark); }
+.priority-actions svg { flex: 0 0 auto; }
+
+/* Readable supporting copy and comfortable controls on touch screens. */
+.client-shell { --muted: #c2c8c4; --border: #484b50; font-size: 16px; line-height: 1.65; }
+.client-shell :is(.client-student-name, .client-welcome small, .today-label, .workout-meta, .client-card-heading small, .client-week-card > p, .client-section-title small, .client-section-title p, .client-plan-day > div:nth-child(2) small, .client-plan-day p, .exercise-main > p, .exercise-main > small, .recent-workouts small, .recent-workouts b, .range-caption, .actual-inputs label, .client-success) { font-size: 12px; }
+.client-shell :is(.exercise-preview > span, .checkin-reminder strong, .client-plan-day h3, .recent-workouts strong) { font-size: 14px; }
+.client-shell :is(.client-primary, .checkin-reminder, .client-plan-day, .client-bottom-nav button, .feedback-options button, .scale-options button, .workout-step-actions button) { min-height: 48px; }
+.client-shell :is(input, select, textarea) { min-height: 44px; font-size: 16px; }
+.client-shell .client-bottom-nav { height: calc(76px + env(safe-area-inset-bottom)); }
+.client-shell .client-bottom-nav span { font-size: 12px; }
+.client-shell .goal-card p { color: rgba(255,255,255,.86); font-size: 12px; }
+.client-shell .client-week-card > p, .client-shell .client-section-title p, .client-shell .exercise-main > p, .client-shell .recent-workouts small { color: var(--muted); }
+.client-shell .client-primary:focus-visible, .client-shell .client-bottom-nav button:focus-visible { outline-color: #fbbf24; outline-offset: 2px; }
+.client-shell .field-label, .client-shell .textarea-label { font-size: 13px; }
+.client-shell .field-label span { font-size: 12px; }
+.modal-close { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+.login-card :is(p, small, label), .role-switch small, .login-help { font-size: 12px; }
+.login-card p, .demo-note, .role-switch small, .login-help { color: #c2c8c4; }
+
+@media (max-width: 700px) {
+  .dashboard-page .priority-tile { grid-template-columns: 1fr; }
+  .priority-main { min-height: 72px; padding: 11px 12px; gap: 9px; }
+  .priority-actions { border-right: 0; border-top: 1px solid var(--border); }
+  .priority-actions button { flex: 1; min-width: 0; min-height: 46px; }
+  .priority-reason { max-width: 40%; font-size: 11px; }
+  .client-content { overflow-x: clip; }
+  .client-welcome > div { min-width: 0; }
+  .client-welcome h1 { line-height: 1.45; }
+}
+
+@media (max-width: 420px) {
+  .priority-main { flex-wrap: wrap; }
+  .priority-identity { flex: 1 1 calc(100% - 56px); }
+  .priority-reason { order: 3; max-width: calc(100% - 28px); margin-right: 50px; }
+  .priority-chevron { margin-right: auto; }
+  .client-content { padding-inline: 14px; }
+  .feedback-options { grid-template-columns: repeat(2, 1fr); }
+}

@@ -39,7 +39,7 @@ function EmptyState({ icon, title, text }: { icon: ReactNode; title: string; tex
   return <div className="empty-state"><div className="empty-icon">{icon}</div><h3>{title}</h3><p>{text}</p></div>
 }
 
-function Sidebar({ page, onNavigate, open, close, logout }: { page: Page; onNavigate: (page: Page) => void; open: boolean; close: () => void; logout: () => void }) {
+function Sidebar({ page, onNavigate, open, close, logout, actionCount }: { page: Page; onNavigate: (page: Page) => void; open: boolean; close: () => void; logout: () => void; actionCount: number }) {
   const nav = [
     { id: 'dashboard' as Page, label: 'امروز', icon: <LayoutDashboard size={19} /> },
     { id: 'students' as Page, label: 'شاگردها', icon: <Users size={19} /> },
@@ -48,15 +48,15 @@ function Sidebar({ page, onNavigate, open, close, logout }: { page: Page; onNavi
   return <>
     {open && <button className="sidebar-backdrop" onClick={close} aria-label="بستن منو" />}
     <aside className={`sidebar ${open ? 'open' : ''}`}>
-      <button className="mobile-close" onClick={close}><X /></button>
+      <button className="mobile-close" onClick={close} aria-label="بستن منو"><X /></button>
       <div className="brand"><div className="brand-mark"><Activity /></div><div><strong>شاگردیتو</strong><small>فضای حرفه‌ای مربی‌ها</small></div></div>
       <nav>
         <p className="nav-label">فضای کار</p>
-        {nav.map(item => <button key={item.id} className={page === item.id || (page === 'profile' && item.id === 'students') ? 'active' : ''} onClick={() => { onNavigate(item.id); close() }}>{item.icon}<span>{item.label}</span>{item.id === 'dashboard' && <b>۳</b>}</button>)}
+        {nav.map(item => <button key={item.id} className={page === item.id || (page === 'profile' && item.id === 'students') ? 'active' : ''} onClick={() => { onNavigate(item.id); close() }}>{item.icon}<span>{item.label}</span>{item.id === 'dashboard' && actionCount > 0 && <b aria-label={`${faNumber(actionCount)} شاگرد نیازمند اقدام`}>{faNumber(actionCount)}</b>}</button>)}
       </nav>
       <div className="sidebar-bottom">
         <button className={page === 'settings' ? 'active' : ''} onClick={() => onNavigate('settings')}><Settings size={19} /><span>تنظیمات</span></button>
-        <div className="coach-card"><div className="coach-avatar">م‌ح</div><div><strong>مهدی حسینی</strong><small>مربی شخصی</small></div><button className="logout-mini" onClick={logout} title="خروج"><LogOut size={17}/></button></div>
+        <div className="coach-card"><div className="coach-avatar">م‌ح</div><div><strong>مهدی حسینی</strong><small>مربی شخصی</small></div><button className="logout-mini" onClick={logout} aria-label="خروج از حساب"><LogOut size={17}/></button></div>
       </div>
     </aside>
   </>
@@ -64,19 +64,30 @@ function Sidebar({ page, onNavigate, open, close, logout }: { page: Page; onNavi
 
 function Header({ title, eyebrow, onMenu }: { title: string; eyebrow?: string; onMenu: () => void }) {
   return <header className="topbar">
-    <div className="header-copy"><button className="menu-button" onClick={onMenu}><Menu /></button><div>{eyebrow && <small>{eyebrow}</small>}<h1>{title}</h1></div></div>
-    <div className="header-actions"><button className="icon-button" title="اعلان‌ها"><Bell size={20} /><i /></button><span className="today-date">{fullDate()}</span><div className="coach-photo" aria-label="مهدی حسینی"><UserRound size={20}/></div></div>
+    <div className="header-copy"><button className="menu-button" onClick={onMenu} aria-label="باز کردن منو"><Menu /></button><div>{eyebrow && <small>{eyebrow}</small>}<h1>{title}</h1></div></div>
+    <div className="header-actions"><button className="icon-button" aria-label="اعلان‌ها"><Bell size={20} /><i /></button><span className="today-date">{fullDate()}</span><div className="coach-photo" aria-label="مهدی حسینی"><UserRound size={20}/></div></div>
   </header>
 }
 
-function Dashboard({ students, openStudent, navigate }: { students: Student[]; openStudent: (id: string) => void; navigate: (page: Page) => void }) {
-  const [statusFilter, setStatusFilter] = useState<StudentAnalysis['status'] | null>(null)
+function Dashboard({ students, openStudent, navigate, updateStudent }: { students: Student[]; openStudent: (id: string) => void; navigate: (page: Page) => void; updateStudent: (student: Student) => void }) {
+  const [statusFilter, setStatusFilter] = useState<StudentAnalysis['status'] | 'actionable'>('actionable')
+  const [completedId, setCompletedId] = useState<string | null>(null)
   const ranked = useMemo(() => students.map(student => ({ student, analysis: analyzeStudent(student) })).sort((a, b) => b.analysis.score - a.analysis.score), [students])
   const attention = ranked.filter(item => item.analysis.status === 'attention')
   const watch = ranked.filter(item => item.analysis.status === 'watch')
   const stable = ranked.filter(item => item.analysis.status === 'stable')
-  const priorities = statusFilter ? ranked.filter(item => item.analysis.status === statusFilter) : ranked
-  const toggleStatus = (status: StudentAnalysis['status']) => setStatusFilter(current => current === status ? null : status)
+  const priorities = statusFilter === 'actionable' ? ranked.filter(item => item.analysis.status !== 'stable') : ranked.filter(item => item.analysis.status === statusFilter)
+  const toggleStatus = (status: StudentAnalysis['status']) => setStatusFilter(current => current === status ? 'actionable' : status)
+  const markFollowUp = (student: Student) => {
+    const now = new Date().toISOString()
+    updateStudent({ ...student, lastContact: now, timeline: [{ id: crypto.randomUUID(), date: now, type: 'message', title: 'پیگیری از داشبورد انجام شد', body: 'مربی پیگیری امروز را انجام‌شده علامت زد.' }, ...student.timeline] })
+    setCompletedId(student.id)
+    window.setTimeout(() => setCompletedId(current => current === student.id ? null : current), 2600)
+  }
+  const messageStudent = (student: Student) => {
+    const phone = student.phone.replace(/\D/g, '').replace(/^0/, '98')
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`سلام ${student.name.split(' ')[0]} عزیز، می‌خواستم وضعیت تمرین‌ها و حال این هفته‌ات را پیگیری کنم 🌱`)}`, '_blank', 'noopener,noreferrer')
+  }
   return <>
     <Header title="امروز بهتره سراغ چه کسی بری؟" eyebrow="سلام مهدی، روزت پُرانرژی 👋" onMenu={() => document.body.classList.add('menu-request')} />
     <main className="page dashboard-page">
@@ -90,18 +101,25 @@ function Dashboard({ students, openStudent, navigate }: { students: Student[]; o
         ] as const).map(([status, count, label, tone]) => <button key={status} type="button" className={statusFilter === status ? 'selected' : ''} aria-pressed={statusFilter === status} aria-label={`${label}، ${faNumber(count)} شاگرد`} onClick={() => toggleStatus(status)}><i className={`mini-donut ${tone}`} style={{ '--percent': `${count / Math.max(1, students.length) * 360}deg` } as CSSProperties}/><b>{faNumber(count)}</b><span>{label}</span></button>)}</div>
       </section>
 
-      <div className="section-title"><div><h2>اولویت‌های امروز</h2><p>مهم‌ترین تغییرها، مرتب‌شده بر اساس میزان نیاز به توجه</p></div><button className="button secondary" onClick={() => navigate('students')}>همه شاگردها <ArrowLeft size={16} /></button></div>
+      <div className="section-title"><div><h2>{statusFilter === 'stable' ? 'شاگردهای پایدار' : statusFilter === 'attention' ? 'پیگیری فوری' : statusFilter === 'watch' ? 'نیازمند بررسی' : 'اقدام‌های امروز'}</h2><p>{statusFilter === 'actionable' ? 'فقط شاگردهایی که امروز به بررسی یا پیگیری نیاز دارند' : 'فهرست بر اساس وضعیت انتخاب‌شده'}</p></div><button className="button secondary" onClick={() => navigate('students')}>همه شاگردها <ArrowLeft size={16} /></button></div>
       <section className="attention-grid" aria-label="فهرست اولویت‌های امروز">
         {priorities.map(({ student, analysis }) => {
           const primarySignal = analysis.signals.reduce<(typeof analysis.signals)[number] | undefined>((top, signal) => !top || signal.points > top.points ? signal : top, undefined)
-          return <button type="button" className="attention-card priority-tile" key={student.id} onClick={() => openStudent(student.id)} aria-label={`${student.name}، ${student.goal}، ${primarySignal?.label ?? 'روند پایدار'}؛ مشاهده پروفایل`}>
-            <Avatar student={student} size="sm" />
-            <span className="priority-identity"><strong>{student.name}</strong><small>{student.goal}</small></span>
-            <span className={`priority-reason ${primarySignal?.tone ?? 'stable'}`}>{primarySignal?.label ?? 'روند پایدار'}</span>
-            <ChevronLeft className="priority-chevron" size={18} aria-hidden="true" />
-          </button>
+          return <article className="attention-card priority-tile" key={student.id}>
+            <button type="button" className="priority-main" onClick={() => openStudent(student.id)} aria-label={`${student.name}، ${student.goal}، ${primarySignal?.label ?? 'روند پایدار'}؛ مشاهده پروفایل`}>
+              <Avatar student={student} size="sm" />
+              <span className="priority-identity"><strong>{student.name}</strong><small>{student.goal}</small></span>
+              <span className={`priority-reason ${primarySignal?.tone ?? 'stable'}`}>{primarySignal?.label ?? 'روند پایدار'}</span>
+              <ChevronLeft className="priority-chevron" size={18} aria-hidden="true" />
+            </button>
+            <div className="priority-actions" aria-label={`اقدام‌های سریع برای ${student.name}`}>
+              <button type="button" onClick={() => messageStudent(student)}><MessageCircle size={16}/> پیام</button>
+              <button type="button" className={completedId === student.id ? 'done' : ''} onClick={() => markFollowUp(student)}><Check size={16}/>{completedId === student.id ? 'ثبت شد' : 'پیگیری شد'}</button>
+            </div>
+          </article>
         })}
-        {!priorities.length && <div className="priority-empty">در این وضعیت شاگردی وجود ندارد.</div>}
+        {!priorities.length && <div className="priority-empty" role="status">{statusFilter === 'actionable' ? 'امروز اقدام فوری یا پیگیری بازی ندارید.' : 'در این وضعیت شاگردی وجود ندارد.'}</div>}
+        <p className="sr-only" aria-live="polite">{completedId ? 'پیگیری شاگرد ثبت شد.' : ''}</p>
       </section>
 
       <section className="lower-grid">
@@ -125,7 +143,7 @@ function StudentsPage({ students, openStudent, addStudent }: { students: Student
   const [filter, setFilter] = useState<'all' | 'attention' | 'watch' | 'stable'>('all')
   const rows = students.map(student => ({ student, analysis: analyzeStudent(student) })).filter(({ student, analysis }) => (filter === 'all' || analysis.status === filter) && student.name.includes(query))
   return <><Header title="شاگردها" eyebrow={`${faNumber(students.length)} شاگرد فعال`} onMenu={() => document.body.classList.add('menu-request')} /><main className="page">
-    <div className="toolbar"><div className="search-box"><Search size={19} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجوی نام شاگرد..." /></div><button className="button primary" onClick={addStudent}><Plus size={18} /> شاگرد جدید</button></div>
+    <div className="toolbar"><div className="search-box"><Search size={19} /><input aria-label="جست‌وجوی شاگرد" value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجوی نام شاگرد..." /></div><button className="button primary" onClick={addStudent}><Plus size={18} /> شاگرد جدید</button></div>
     <div className="filter-tabs">{([['all', 'همه'], ['attention', 'پیگیری امروز'], ['watch', 'زیر نظر'], ['stable', 'روبه‌راه']] as const).map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}</div>
     <section className="students-table panel">
       <div className="table-head"><span>شاگرد</span><span>هدف</span><span>آخرین گزارش</span><span>انجام جلسات</span><span>وضعیت</span><span /></div>
@@ -186,7 +204,7 @@ function ProgramPanel({ student, updateStudent }: { student: Student; updateStud
       </div></div>
     </article>)}</div>
     {!student.program.days.length && <EmptyState icon={<Dumbbell/>} title="اولین جلسه را بسازید" text="جلسه جدید اضافه کنید و حرکت‌ها را خودتان بنویسید." />}
-    {showShare && <div className="modal-layer"><div className="share-modal"><button className="modal-close" onClick={() => setShowShare(false)}><X/></button><div className="share-modal-icon"><Share2/></div><h2>اشتراک‌گذاری برنامه با {student.name}</h2><p>این لینک در نسخه آزمایشی فقط در مرورگری که اطلاعات شاگرد در آن ثبت شده کار می‌کند. ارسال آن به دستگاه دیگر به سرور و احراز هویت نیاز دارد.</p><button className="button primary full share-link-action" onClick={share}><Share2 size={17}/> ارسال یا کپی لینک برنامه</button><div className="share-meta"><span><UserCog size={15}/> مربی: مهدی حسینی</span><span><CalendarDays size={15}/> تاریخ ارسال: {new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span></div></div></div>}
+    {showShare && <div className="modal-layer"><div className="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-program-title"><button className="modal-close" onClick={() => setShowShare(false)} aria-label="بستن پنجره اشتراک‌گذاری"><X/></button><div className="share-modal-icon"><Share2/></div><h2 id="share-program-title">اشتراک‌گذاری برنامه با {student.name}</h2><p>این لینک در نسخه آزمایشی فقط در مرورگری که اطلاعات شاگرد در آن ثبت شده کار می‌کند. ارسال آن به دستگاه دیگر به سرور و احراز هویت نیاز دارد.</p><button className="button primary full share-link-action" onClick={share}><Share2 size={17}/> ارسال یا کپی لینک برنامه</button><div className="share-meta"><span><UserCog size={15}/> مربی: مهدی حسینی</span><span><CalendarDays size={15}/> تاریخ ارسال: {new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span></div></div></div>}
   </section>
 }
 
@@ -280,7 +298,7 @@ function ProfilePage({ student, updateStudent, goBack, initialTab = 'overview' }
       <section className="panel"><div className="panel-heading"><div><h3>آخرین وضعیت</h3><p>{latest ? `ثبت‌شده در ${faDate(latest.date)}` : 'هنوز گزارش هفتگی ثبت نشده'}</p></div></div><div className="metric-cards"><div><Weight/><span>وزن</span><b>{latest ? latest.weight.toLocaleString('fa-IR') : '—'} <small>کیلوگرم</small></b></div><div><Activity/><span>پایبندی</span><b>{faNumber(calculateAdherence(student).percent)}٪</b></div><div><Dumbbell/><span>تمرین‌های این هفته</span><b>{faNumber(student.workoutLogs.filter(log => dayDiff(log.date) <= 7).length)} / {faNumber(student.program.days.length)}</b></div><div><Clock3/><span>خواب</span><b>{latest?.sleepHours ? latest.sleepHours.toLocaleString('fa-IR') : latest ? `${faNumber(latest.sleep)} / ۵` : '—'} <small>{latest?.sleepHours ? 'ساعت' : 'کیفیت'}</small></b></div></div></section>
       <section className="panel profile-timeline"><div className="panel-heading"><div><h3>خط زمانی</h3><p>آخرین اتفاق‌های شاگرد</p></div><CalendarDays size={19}/></div><div className="timeline">{[...student.timeline].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5).map(item => <div className={`timeline-item ${item.important ? 'important' : ''}`} key={item.id}><div className="timeline-dot">{item.type === 'checkin' ? <ClipboardCheck/> : item.type === 'workout' ? <Dumbbell/> : item.type === 'message' ? <MessageCircle/> : <FileText/>}</div><div><time>{faDate(item.date)}</time><h3>{item.title}</h3><p>{item.body}</p></div></div>)}{!student.timeline.length && <p className="timeline-empty">هنوز رویدادی ثبت نشده است.</p>}</div></section>
       <section className={`insight-panel ${analysis.status}`}><div className="insight-heading"><div className="insight-icon"><Sparkles /></div><div><small>جمع‌بندی شاگردیتو</small><h2>خلاصه هوشمند و اقدام بعدی</h2></div></div><div className="insight-signals">{analysis.signals.length ? [...analysis.signals].sort((a, b) => b.points - a.points).slice(0, 4).map(signal => <div key={signal.id}><i className={signal.tone}>{signal.id === 'sleep' ? <Moon/> : signal.id === 'energy' ? <Activity/> : signal.id === 'completion' ? <Weight/> : signal.id === 'adherence' ? <Dumbbell/> : <AlertCircle/>}</i><span><strong>{signal.label}</strong><small>{signal.detail}</small></span></div>) : <p>در اطلاعات اخیر نشانه نگران‌کننده‌ای دیده نشد.</p>}</div><div className="suggested-action"><Target size={19} /><div><small>بهترین اقدام بعدی</small><p>{analysis.signals.some(signal => signal.id === 'pain') ? 'پیش از نوشتن برنامه بعدی، وضعیت درد و میزان پایبندی شاگرد را بررسی کنید.' : analysis.action}</p></div><button onClick={() => setTab('checkins')}>باز کردن چک‌این</button></div></section>
-    </div><aside className="profile-side"><section className="panel quick-ask"><div className="bot-badge"><Bot /></div><h3>از دستیار مربی بپرس</h3><p>درباره روند، یادداشت‌ها یا وضعیت این شاگرد سؤال کن.</p><div className="ask-field"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="مثلاً: آخرین بار کی درد داشت؟" /><button onClick={() => ask()}><Send /></button></div><div className="suggestions"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('روند وزنش چطور بوده؟')}>روند وزن چطور بوده؟</button><button onClick={() => ask('آیا سابقه درد دارد؟')}>سابقه درد دارد؟</button></div></section><section className="panel contact-card"><h3>اطلاعات شاگرد</h3><dl><div><dt>شماره تماس</dt><dd>{student.phone}</dd></div><div><dt>هدف</dt><dd>{student.goal}</dd></div><div><dt>نوع همکاری</dt><dd>{student.plan}</dd></div></dl></section></aside></div>}
+    </div><aside className="profile-side"><section className="panel quick-ask"><div className="bot-badge"><Bot /></div><h3>از دستیار مربی بپرس</h3><p>درباره روند، یادداشت‌ها یا وضعیت این شاگرد سؤال کن.</p><div className="ask-field"><input aria-label="سؤال از دستیار مربی" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="مثلاً: آخرین بار کی درد داشت؟" /><button onClick={() => ask()} aria-label="ارسال سؤال"><Send /></button></div><div className="suggestions"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('روند وزنش چطور بوده؟')}>روند وزن چطور بوده؟</button><button onClick={() => ask('آیا سابقه درد دارد؟')}>سابقه درد دارد؟</button></div></section><section className="panel contact-card"><h3>اطلاعات شاگرد</h3><dl><div><dt>شماره تماس</dt><dd>{student.phone}</dd></div><div><dt>هدف</dt><dd>{student.goal}</dd></div><div><dt>نوع همکاری</dt><dd>{student.plan}</dd></div></dl></section></aside></div>}
 
     {tab === 'timeline' && <section className="timeline-layout"><div className="timeline panel">{student.timeline.map(item => <div className={`timeline-item ${item.important ? 'important' : ''}`} key={item.id}><div className="timeline-dot">{item.type === 'checkin' ? <ClipboardCheck /> : item.type === 'message' ? <MessageCircle /> : item.type === 'workout' ? <Dumbbell /> : <FileText />}</div><div><time>{faDate(item.date)} · {relativeDate(item.date)}</time><h3>{item.title}</h3><p>{item.body}</p></div></div>)}</div></section>}
     {tab === 'program' && <ProgramPanel student={student} updateStudent={updateStudent} />}
@@ -288,7 +306,7 @@ function ProfilePage({ student, updateStudent, goBack, initialTab = 'overview' }
     {tab === 'checkins' && <CheckInHistory student={student} />}
     {tab === 'finance' && <section className="finance-grid"><article className={`panel billing-status ${student.sessionsAttended >= student.sessionsPlanned ? 'expired' : ''}`}><div className="billing-icon"><WalletCards/></div><div><small>وضعیت اشتراک</small><h2>{student.sessionsAttended >= student.sessionsPlanned ? 'نیازمند تمدید' : 'اشتراک فعال'}</h2><p>{faNumber(Math.max(0, student.sessionsPlanned - student.sessionsAttended))} جلسه از پکیج باقی مانده است.</p></div><button className="button primary" onClick={() => navigator.clipboard.writeText(`سلام ${student.name} عزیز، موعد تمدید اشتراکت رسیده. برای ادامه برنامه پیام بده 🌱`)}><Copy size={16}/> کپی پیام تمدید</button></article><PaymentForm student={student} updateStudent={updateStudent}/></section>}
     {tab === 'assistant' && <section className="assistant-view panel"><div className="assistant-intro"><div className="bot-badge"><Sparkles /></div><div><h2>درباره {student.name} بپرسید</h2><p>پاسخ‌ها بر اساس گزارش‌های هفتگی، اندازه‌گیری‌ها و یادداشت‌های ثبت‌شده‌اند.</p></div></div><div className="chat-area">{messages.length === 0 && <div className="chat-prompts"><button onClick={() => ask('چرا بهتره امروز پیگیری شود؟')}>چرا امروز پیگیری شود؟</button><button onClick={() => ask('آخرین وضعیت خواب و انرژی چطور بوده؟')}>وضعیت خواب و انرژی؟</button><button onClick={() => ask('آخرین بار کی با او تماس داشتم؟')}>آخرین ارتباط چه زمانی بود؟</button></div>}{messages.map((message, index) => <div className="chat-pair" key={index}><p className="coach-message">{message.q}</p><div className="bot-message"><Sparkles size={17} /><p>{message.a}</p></div></div>)}</div><div className="chat-input"><input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="سؤال خود را بنویسید..." /><button onClick={() => ask()}><Send /></button></div><small className="ai-note">این جمع‌بندی ممکن است خطا داشته باشد؛ تصمیم نهایی با مربی است.</small></section>}
-  </main>{showNote && <div className="modal-layer"><div className="modal small"><button className="modal-close" onClick={() => setShowNote(false)}><X /></button><h2>یادداشت جدید</h2><p>این یادداشت در حافظه و خط زمانی شاگرد باقی می‌ماند.</p><textarea autoFocus value={note} onChange={e => setNote(e.target.value)} placeholder="مثلاً: امروز هنگام اسکوات از درد زانوی راست گفت..." rows={5} /><button className="button primary full" onClick={saveNote}>ذخیره یادداشت</button></div></div>}</>
+  </main>{showNote && <div className="modal-layer"><div className="modal small" role="dialog" aria-modal="true" aria-labelledby="new-note-title"><button className="modal-close" onClick={() => setShowNote(false)} aria-label="بستن پنجره یادداشت"><X /></button><h2 id="new-note-title">یادداشت جدید</h2><p>این یادداشت در حافظه و خط زمانی شاگرد باقی می‌ماند.</p><textarea aria-label="متن یادداشت" autoFocus value={note} onChange={e => setNote(e.target.value)} placeholder="مثلاً: امروز هنگام اسکوات از درد زانوی راست گفت..." rows={5} /><button className="button primary full" onClick={saveNote}>ذخیره یادداشت</button></div></div>}</>
 }
 
 function RangeField({ name, label, low, high }: { name: string; label: string; low: string; high: string }) {
@@ -296,7 +314,7 @@ function RangeField({ name, label, low, high }: { name: string; label: string; l
   const energyIcons = ['🪫', '😮‍💨', '🙂', '⚡', '🔥']
   const sleepIcons = ['🌑', '🌘', '🌗', '🌖', '🌕']
   const icons = name === 'sleep' ? sleepIcons : energyIcons
-  return <div className={`range-field choice-field value-${value}`}><span><b>{label}</b><strong>{faNumber(value)} از ۵</strong></span><input name={name} type="hidden" value={value}/><div className="scale-options" role="radiogroup" aria-label={label}>{icons.map((icon, index) => <button type="button" role="radio" aria-checked={value === index + 1} className={value === index + 1 ? 'selected' : ''} key={icon} onClick={() => setValue(index + 1)}><i>{icon}</i><small>{faNumber(index + 1)}</small></button>)}</div><small className="range-caption"><i>{low}</i><i>{high}</i></small></div>
+  return <div className={`range-field choice-field value-${value}`}><span><b>{label}</b><strong>{faNumber(value)} از ۵</strong></span><input name={name} type="hidden" value={value}/><div className="scale-options" role="radiogroup" aria-label={label}>{icons.map((icon, index) => <button type="button" role="radio" aria-label={`${label} ${faNumber(index + 1)} از ۵`} aria-checked={value === index + 1} className={value === index + 1 ? 'selected' : ''} key={icon} onClick={() => setValue(index + 1)}><i aria-hidden="true">{icon}</i><small>{faNumber(index + 1)}</small></button>)}</div><small className="range-caption"><i>{low}</i><i>{high}</i></small></div>
 }
 
 function ClientWorkout({ day, review }: { day: WorkoutDay; review: (results: ExerciseResult[]) => void }) {
@@ -413,7 +431,7 @@ function LoginPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
     <section className="login-panel"><form className="login-card" onSubmit={submit}>
       <div className="mobile-login-brand"><Activity/><strong>شاگردیتو</strong></div>
       <span className="welcome-chip">خوش اومدی 👋</span><h2>وارد فضای کارت شو</h2><p>نقش کاربری را انتخاب کن و ادامه بده.</p>
-      <div className="role-switch"><button type="button" className={role === 'coach' ? 'active' : ''} onClick={() => setRole('coach')}><Dumbbell size={18}/><span><b>مربی</b><small>مدیریت شاگردها</small></span></button><button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><ShieldCheck size={18}/><span><b>مدیر سیستم</b><small>مدیریت مربی‌ها</small></span></button></div>
+      <div className="role-switch" role="group" aria-label="انتخاب نقش"><button type="button" aria-pressed={role === 'coach'} className={role === 'coach' ? 'active' : ''} onClick={() => setRole('coach')}><Dumbbell size={18}/><span><b>مربی</b><small>مدیریت شاگردها</small></span></button><button type="button" aria-pressed={role === 'admin'} className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><ShieldCheck size={18}/><span><b>مدیر سیستم</b><small>مدیریت مربی‌ها</small></span></button></div>
       <label>شماره موبایل<div className="login-input"><CircleUserRound size={19}/><input inputMode="tel" placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷" required/></div></label>
       <label>رمز عبور<div className="login-input"><LockKeyhole size={19}/><input type={showPassword ? 'text' : 'password'} placeholder="حداقل ۶ کاراکتر" minLength={6} defaultValue="123456" required/><button type="button" onClick={() => setShowPassword(value => !value)}>{showPassword ? 'پنهان' : 'نمایش'}</button></div></label>
       <div className="login-help"><label><input type="checkbox" defaultChecked/> من را به خاطر بسپار</label><button type="button">رمزت یادت رفته؟</button></div>
@@ -448,7 +466,7 @@ function AddStudentModal({ close, add }: { close: () => void; add: (student: Stu
     const now = new Date().toISOString()
     add({ id: crypto.randomUUID(), name, initials: name.split(' ').map(x => x[0]).slice(0,2).join('‌'), color: '#8aaea0', phone: String(data.get('phone')), goal: String(data.get('goal')), plan: String(data.get('plan')), joinedAt: now, lastContact: now, sessionsPlanned: 0, sessionsAttended: 0, program: { id: crypto.randomUUID(), title: 'برنامه هفتگی جدید', weekLabel: 'هفته جاری', updatedAt: now, days: [] }, workoutLogs: [], measurements: [], checkIns: [], timeline: [{ id: crypto.randomUUID(), date: now, type: 'note', title: 'شاگرد اضافه شد', body: 'پروفایل شاگرد در شاگردیتو ساخته شد.' }] })
   }
-  return <div className="modal-layer"><form className="modal" onSubmit={submit}><button type="button" className="modal-close" onClick={close}><X/></button><div className="modal-icon"><UserPlus/></div><h2>افزودن شاگرد جدید</h2><p>برای شروع فقط اطلاعات ضروری را وارد کنید.</p><label>نام و نام خانوادگی<input name="name" required placeholder="مثلاً الهام محمودی" /></label><div className="two-fields"><label>شماره تماس<input name="phone" required placeholder="۰۹۱۲..." /></label><label>نوع همکاری<select name="plan"><option>حضوری</option><option>آنلاین</option><option>حضوری + آنلاین</option></select></label></div><label>هدف اصلی<input name="goal" required placeholder="مثلاً کاهش وزن و تناسب اندام" /></label><button className="button primary full" type="submit">ساخت پروفایل شاگرد</button></form></div>
+  return <div className="modal-layer"><form className="modal" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="add-student-title"><button type="button" className="modal-close" onClick={close} aria-label="بستن پنجره افزودن شاگرد"><X/></button><div className="modal-icon"><UserPlus/></div><h2 id="add-student-title">افزودن شاگرد جدید</h2><p>برای شروع فقط اطلاعات ضروری را وارد کنید.</p><label>نام و نام خانوادگی<input name="name" required placeholder="مثلاً الهام محمودی" /></label><div className="two-fields"><label>شماره تماس<input name="phone" inputMode="tel" required placeholder="۰۹۱۲..." /></label><label>نوع همکاری<select name="plan"><option>حضوری</option><option>آنلاین</option><option>حضوری + آنلاین</option></select></label></div><label>هدف اصلی<input name="goal" required placeholder="مثلاً کاهش وزن و تناسب اندام" /></label><button className="button primary full" type="submit">ساخت پروفایل شاگرد</button></form></div>
 }
 
 export default function App() {
@@ -480,6 +498,7 @@ export default function App() {
   const navigate = (next: Page) => { setPage(next); setMenuOpen(false); window.scrollTo({ top: 0, left: 0 }) }
   const updateStudent = (next: Student) => setStudents(current => current.map(s => s.id === next.id ? next : s))
   const selected = students.find(s => s.id === selectedId)
+  const actionCount = students.filter(student => analyzeStudent(student).status !== 'stable').length
   const logout = () => { setRole(null); setPage('dashboard'); window.scrollTo({ top: 0 }) }
   const linkParams = new URLSearchParams(window.location.search)
   const linkedId = linkParams.get('student') || linkParams.get('program')
@@ -487,8 +506,8 @@ export default function App() {
   if (linkedId) return linkedStudent ? <ClientApp student={linkedStudent} updateStudent={updateStudent}/> : <main className="client-link-error"><h1>لینک شاگرد پیدا نشد</h1><p>این نسخه آزمایشی داده‌ها را فقط در مرورگری که پروفایل در آن ساخته شده نگه می‌دارد. برای اشتراک‌گذاری واقعی بین دستگاه‌ها به سرور نیاز است.</p></main>
   if (!role) return <LoginPage onLogin={setRole}/>
   if (role === 'admin') return <AdminPanel students={students} logout={logout}/>
-  return <div className={`app-shell ${dark ? 'dark-theme' : ''}`}><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} /><div className="content-shell">
-    {page === 'dashboard' && <Dashboard students={students} openStudent={openStudent} navigate={navigate} />}
+  return <div className={`app-shell ${dark ? 'dark-theme' : ''}`}><Sidebar page={page} onNavigate={navigate} open={menuOpen} close={() => setMenuOpen(false)} logout={logout} actionCount={actionCount} /><div className="content-shell">
+    {page === 'dashboard' && <Dashboard students={students} openStudent={openStudent} navigate={navigate} updateStudent={updateStudent} />}
     {page === 'students' && <StudentsPage students={students} openStudent={openStudent} addStudent={() => setShowAdd(true)} />}
     {page === 'inbox' && <InboxPage students={students} openStudent={openStudent} />}
     {page === 'settings' && <SettingsPage dark={dark} toggleDark={() => setDark(value => !value)} studentCount={students.length} />}

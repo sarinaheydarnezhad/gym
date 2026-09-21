@@ -53,3 +53,43 @@ describe('dedicated student flow', () => {
     expect(container.textContent).toContain('برای اشتراک‌گذاری واقعی بین دستگاه‌ها به سرور نیاز است')
   })
 })
+
+describe('coach action dashboard', () => {
+  let container: HTMLDivElement
+  let root: ReturnType<typeof createRoot>
+
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+    Object.defineProperty(window.crypto, 'randomUUID', { configurable: true, value: () => `test-${Math.random()}` })
+    window.scrollTo = vi.fn()
+    localStorage.clear()
+    window.history.replaceState(null, '', '/')
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+  })
+
+  afterEach(async () => {
+    await act(async () => root.unmount())
+    container.remove()
+    localStorage.clear()
+  })
+
+  it('shows actionable students by default and records a quick follow-up', async () => {
+    await act(async () => root.render(<App/>))
+    const login = container.querySelector<HTMLFormElement>('.login-card')!
+    await act(async () => { login.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+
+    const priorities = container.querySelector<HTMLElement>('.attention-grid')!
+    expect(priorities.textContent).toContain('سارا احمدی')
+    expect(priorities.textContent).not.toContain('رضا کریمی')
+
+    const saraCard = [...container.querySelectorAll<HTMLElement>('.priority-tile')].find(card => card.textContent?.includes('سارا احمدی'))!
+    const followUp = [...saraCard.querySelectorAll<HTMLButtonElement>('.priority-actions button')].find(button => button.textContent?.includes('پیگیری شد'))!
+    await act(async () => { followUp.click() })
+
+    const students = JSON.parse(localStorage.getItem('hamrah-coach-students-v1') || '[]') as typeof seedStudents
+    expect(students.find(student => student.id === 'sara')?.timeline[0].title).toBe('پیگیری از داشبورد انجام شد')
+    expect(saraCard.textContent).toContain('ثبت شد')
+  })
+})
