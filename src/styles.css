@@ -272,6 +272,117 @@ input, button, select, textarea { font: inherit; }
 @media (max-width: 600px) { .profile-tabs button { min-height: 50px; font-size: 11px; padding-inline: 13px; }.subscription-options { grid-template-columns: 1fr; }.modal { padding: 25px 20px; }.assistant-view { padding: 20px 16px; }.modern-chart svg { height: 160px; }.program-toolbar-actions { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
+/* Compact dashboard triage: the full history belongs in the student profile. */
+.hero-stats { gap: clamp(6px, 1.3vw, 18px); padding-left: 0; }
+.hero-stats button { display: flex; flex-direction: column; align-items: center; min-width: 69px; padding: 8px 10px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: rgba(255,255,255,.76); cursor: pointer; font-size: 10px; line-height: 1.4; transition: background .2s, border-color .2s; }
+.hero-stats button:hover, .hero-stats button.selected { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.28); }
+.hero-stats button:focus-visible, .priority-tile:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+.hero-stats button b { color: #fff; font-size: 21px; line-height: 1.2; }
+.hero-stats button span { color: inherit; font-size: 10px; }
+.dashboard-page .attention-grid { display: flex; flex-direction: column; gap: 8px; }
+.dashboard-page .priority-tile { width: 100%; min-height: 70px; display: flex; align-items: center; gap: 12px; text-align: right; padding: 11px 16px; cursor: pointer; color: inherit; }
+.priority-identity { flex: 1; min-width: 0; }
+.priority-identity strong, .priority-identity small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.priority-identity strong { font-size: 13px; }
+.priority-identity small { margin-top: 3px; font-size: 10px; color: var(--muted); }
+.priority-reason { flex: 0 1 auto; max-width: 42%; padding: 6px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.priority-reason.danger { background: var(--danger-soft); color: var(--danger); }
+.priority-reason.warning { background: var(--warning-soft); color: var(--warning); }
+.priority-reason.info, .priority-reason.stable { background: var(--green-soft); color: var(--green); }
+.priority-chevron { flex-shrink: 0; color: var(--muted); }
+.priority-empty { padding: 26px; border: 1px dashed var(--border); border-radius: 12px; text-align: center; color: var(--muted); font-size: 12px; }
+@media (max-width: 1100px) { .dashboard-page .priority-tile:nth-child(3) { display: flex; } }
+@media (max-width: 600px) {
+  .hero-stats { gap: 2px; }
+  .hero-stats button { min-width: 0; flex: 1; padding: 6px 3px; }
+  .dashboard-page .priority-tile { min-height: 66px; gap: 9px; padding: 10px 12px; }
+  .priority-reason { max-width: 38%; font-size: 9px; padding: 6px 7px; }
+}
+
+/* Full-bleed welcome screen. */
+.login-story { margin: 0; min-height: 100vh; border: 0; border-radius: 0; }
+.login-panel { border: 0; }
+.login-card { background: transparent !important; border: 0 !important; border-radius: 0; box-shadow: none !important; }
+
+/* Workout builder accordion: retain input values while folding each session. */
+.program-day-head { border-bottom: 0; }
+.program-day-body { display: grid; grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows .32s cubic-bezier(.2,.8,.2,1), opacity .26s ease; }
+.program-day-body > div { min-height: 0; overflow: hidden; }
+.program-day.collapsed .program-day-body { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows .32s cubic-bezier(.2,.8,.2,1), opacity .26s ease, visibility 0s .32s; }
+.program-day.expanded .program-day-head { border-bottom: 1px solid var(--border); }
+.day-collapse { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 9px; color: var(--green); background: var(--card); cursor: pointer; }
+.day-collapse svg { transition: transform .3s ease; }
+.program-day.collapsed .day-collapse svg { transform: rotate(90deg); }
+.day-collapse:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+/* Student profile: status, timeline, then recommendation. */
+.profile-page { --profile-accent: #087f79; }
+.profile-page .profile-tabs button.active { color: var(--profile-accent); border-bottom-color: var(--profile-accent); }
+.profile-main > .panel, .profile-main > .insight-panel { min-width: 0; }
+.profile-main .metric-cards { padding: 3px 17px 18px; }
+.profile-main .metric-cards > div { min-width: 0; }
+.profile-main .metric-cards b { font-variant-numeric: tabular-nums; }
+.profile-timeline .timeline { padding: 0 17px 16px; }
+.profile-timeline .timeline-item { padding-block: 10px; }
+.timeline-empty { color: var(--muted); padding: 10px; }
+.profile-main .insight-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-main .insight-signals > div { min-width: 0; align-items: flex-start; }
+.profile-main .insight-signals span { min-width: 0; }
+.profile-main .insight-signals small { line-height: 1.65; font-size: 10px; }
+.profile-main .insight-signals small::before { content: '⚠'; color: var(--danger); margin-left: 4px; }
+.profile-main .suggested-action { flex-wrap: wrap; gap: 12px; }
+.profile-main .suggested-action small { font-size: 13px; }
+.profile-main .suggested-action p { font-size: 14px; line-height: 1.65; }
+.profile-main .suggested-action button { display: inline-flex; padding: 9px 12px; white-space: nowrap; border-color: var(--profile-accent); color: var(--profile-accent); font-size: 11px; }
+
+/* Inbox and local payment log. */
+.inbox-list { overflow: hidden; }
+.inbox-item { display: flex; gap: 12px; align-items: center; width: 100%; padding: 15px 18px; border: 0; border-bottom: 1px solid var(--border); text-align: right; color: inherit; background: var(--card); cursor: pointer; }
+.inbox-item:last-child { border-bottom: 0; }
+.inbox-item:hover, .inbox-item.unread { background: color-mix(in srgb, var(--card) 92%, var(--green)); }
+.inbox-item > span { flex: 1; min-width: 0; }
+.inbox-item strong, .inbox-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item strong { font-size: 13px; }
+.inbox-item small, .inbox-item time { color: var(--muted); font-size: 11px; }
+.inbox-item.unread strong::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: var(--green); }
+.payment-confirmation { margin: 0 19px 15px; color: var(--green); font-weight: 700; }
+.payment-history { padding: 14px 19px 19px; border-top: 1px solid var(--border); }
+.payment-history > strong { display: block; margin-bottom: 8px; }
+.payment-history > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; color: var(--muted); }
+.payment-history b { color: inherit; }
+.subscription-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.subscription-options article.recommended { border-color: var(--green); background: color-mix(in srgb, var(--card) 92%, var(--green)); }
+
+/* No-login student flow. */
+.client-student-name { font-size: 12px; color: var(--muted); }
+.client-link-error { min-height: 100vh; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 25px; text-align: center; background: #f4f6f1; }
+.client-link-error p { max-width: 480px; line-height: 1.8; color: #59645d; }
+.client-primary:disabled { opacity: .5; cursor: not-allowed; }
+.workout-exercises .workout-done { margin-top: 12px; }
+.workout-step-actions { display: flex; justify-content: space-between; margin: 8px 0 16px; }
+.workout-step-actions button { padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: inherit; cursor: pointer; }
+.workout-step-actions button:disabled { opacity: .45; }
+.feedback-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 21px 0; }
+.feedback-options button { display: grid; justify-items: center; gap: 7px; padding: 15px 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); color: inherit; cursor: pointer; }
+.feedback-options button span { font-size: 24px; }
+.feedback-options button.selected { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+.checkin-progress { padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.checkin-progress > span { font-size: 12px; font-weight: 700; }
+@media (max-width: 700px) {
+  .subscription-options { grid-template-columns: 1fr; }
+  .profile-main .insight-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-main .suggested-action button { display: inline-flex; }
+  .inbox-item time { white-space: nowrap; }
+}
+@media (max-width: 420px) {
+  .profile-main .insight-signals { grid-template-columns: 1fr; }
+  .inbox-item { padding: 12px; gap: 8px; }
+  .inbox-item time { display: none; }
+  .feedback-options { gap: 5px; }
+  .profile-identity .attention-score { min-height: 76px; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .program-day-body, .day-collapse svg { transition: none; } }
+
 /* Dark professional palette outside the authenticated coach shell */
 .login-page, .admin-shell, .public-program-page, .client-shell { background: #121212; color: #fafafa; }
 .login-panel, .admin-main, .public-program-content, .client-content { background: #121212; }

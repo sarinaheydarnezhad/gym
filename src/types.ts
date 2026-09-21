@@ -5,6 +5,7 @@ export interface CheckIn {
   date: string
   energy: number
   sleep: number
+  sleepHours?: number
   nutrition: number
   workoutCompletion: number
   weight: number
@@ -63,6 +64,7 @@ export interface WorkoutLog {
   date: string
   completed: boolean
   results: ExerciseResult[]
+  feedback?: string
 }
 
 export interface Measurement {
@@ -72,6 +74,13 @@ export interface Measurement {
   waist?: number
   hip?: number
   chest?: number
+}
+
+export interface PaymentRecord {
+  id: string
+  amount: number
+  date: string
+  packageName: string
 }
 
 export interface Student {
@@ -91,6 +100,7 @@ export interface Student {
   measurements: Measurement[]
   checkIns: CheckIn[]
   timeline: TimelineItem[]
+  payments?: PaymentRecord[]
 }
 
 export interface Signal {
